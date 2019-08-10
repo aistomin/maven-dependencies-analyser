@@ -13,22 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.github.aistomin.maven.dependencies.analyser;
-
-import java.util.UUID;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Test;
-
 /**
- * Test for {@link Dummy}.
- *
- * @since 0.1
+ * The root package of the "Maven Dependencies Analyser" tests.
  */
-public final class DummyTest {
-
-    @Test
-    void testDummy() {
-        final String val = UUID.randomUUID().toString();
-        Assertions.assertEquals(val, new Dummy(val).dummy());
-    }
-}
+package com.github.aistomin.maven.dependencies.analyser;
