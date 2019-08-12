@@ -29,6 +29,7 @@ public final class Dummy {
 
     /**
      * Ctor.
+     *
      * @param val Dummy value.
      */
     public Dummy(final String val) {
