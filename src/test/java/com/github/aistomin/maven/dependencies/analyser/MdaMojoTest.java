@@ -15,20 +15,22 @@
  */
 package com.github.aistomin.maven.dependencies.analyser;
 
-import java.util.UUID;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 /**
- * Test for {@link Dummy}.
+ * Test for {@link MdaMojo}.
  *
  * @since 0.1
  */
-public final class DummyTest {
+public final class MdaMojoTest {
 
+    /**
+     * Check that plugin can be successfully executed.
+     *
+     * @throws Exception If something goes wrong.
+     */
     @Test
-    void testDummy() {
-        final String val = UUID.randomUUID().toString();
-        Assertions.assertEquals(val, new Dummy(val).dummy());
+    public void testExecute() throws Exception {
+        new MdaMojo().execute();
     }
 }
