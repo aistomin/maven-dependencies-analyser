@@ -30,7 +30,7 @@ import org.junit.jupiter.api.Test;
  *
  * @since 0.1
  */
-class MdaPomTest {
+final class MdaPomTest {
 
     /**
      * Check that we can correctly read the dependencies from the pom.xml.
@@ -77,10 +77,8 @@ class MdaPomTest {
         ).dependencies();
         Assertions.assertEquals(expected.size(), dependencies.size());
         for (final MvnArtifactVersion dependency : dependencies) {
-            Assertions.assertNotNull(
-                expected.stream().filter(
-                    exp ->
-                        exp.equals(dependency)).findFirst().get()
+            Assertions.assertTrue(
+                expected.stream().anyMatch(exp -> exp.equals(dependency))
             );
         }
     }

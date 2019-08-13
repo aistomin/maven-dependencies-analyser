@@ -22,7 +22,7 @@ import org.junit.jupiter.api.Test;
  *
  * @since 0.1
  */
-public final class MdaMojoTest {
+final class MdaMojoTest {
 
     /**
      * Check that plugin can be successfully executed.
@@ -30,7 +30,7 @@ public final class MdaMojoTest {
      * @throws Exception If something goes wrong.
      */
     @Test
-    public void testExecute() throws Exception {
+    void testExecute() throws Exception {
         new MdaMojo().execute();
     }
 }
