@@ -25,6 +25,8 @@ import java.nio.file.Files;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
+import org.apache.maven.model.Dependency;
+import org.apache.maven.model.Model;
 import org.apache.maven.model.io.xpp3.MavenXpp3Reader;
 
 /**
@@ -59,8 +61,9 @@ public final class MdaPom implements MdaBuildFile {
 
     @Override
     public List<MvnArtifactVersion> dependencies() throws Exception {
-        return new MavenXpp3Reader()
-            .read(Files.newInputStream(this.file.toPath()))
+        final Model model = new MavenXpp3Reader()
+            .read(Files.newInputStream(this.file.toPath()));
+        return model
             .getDependencies()
             .stream()
             .map(
@@ -70,7 +73,7 @@ public final class MdaPom implements MdaBuildFile {
                             new MavenGroup(dependency.getGroupId()),
                             dependency.getArtifactId()
                         ),
-                        dependency.getVersion(),
+                        dependencyVersion(model, dependency),
                         packaging(dependency.getType()),
                         System.currentTimeMillis()
                     )
@@ -91,5 +94,28 @@ public final class MdaPom implements MdaBuildFile {
             )
             .findFirst()
             .orElse(null);
+    }
+
+    /**
+     * Sometimes the version of the artifact can be set as property. We need to
+     * get the real value.
+     *
+     * @param model The pom.xml model.
+     * @param dependency Dependency.
+     * @return The real version.
+     */
+    private static String dependencyVersion(
+        final Model model, final Dependency dependency
+    ) {
+        String version = dependency.getVersion();
+        final String marker = "${";
+        if (version.contains(marker)) {
+            version = model
+                .getProperties()
+                .getProperty(
+                    version.replace(marker, "").replace("}", "")
+                );
+        }
+        return version;
     }
 }

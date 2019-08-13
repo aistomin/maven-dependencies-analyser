@@ -40,7 +40,7 @@ final class MdaPomTest {
     @Test
     void testDependencies() throws Exception {
         final String jupiter = "org.junit.jupiter";
-        final String junit = "${junitVersion}";
+        final String junit = "5.3.1";
         final List<MvnArtifactVersion> expected = Arrays.asList(
             new MavenArtifactVersion(
                 new MavenArtifact(
