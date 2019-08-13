@@ -46,12 +46,7 @@ public final class MdaMojo extends AbstractMojo {
     @Parameter(property = "path", defaultValue = "pom.xml")
     private String pom;
 
-    /**
-     * Execute method.
-     *
-     * @throws MojoExecutionException Mojo exception.
-     * @throws MojoFailureException Mojo failure.
-     */
+    @Override
     public void execute() throws MojoExecutionException, MojoFailureException {
         final String format = "***** %s *****";
         if ("ERROR".equals(this.level)) {
