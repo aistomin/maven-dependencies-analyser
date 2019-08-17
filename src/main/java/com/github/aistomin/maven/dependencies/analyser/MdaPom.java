@@ -22,7 +22,6 @@ import com.github.aistomin.maven.browser.MvnArtifactVersion;
 import com.github.aistomin.maven.browser.MvnPackagingType;
 import java.io.File;
 import java.nio.file.Files;
-import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.apache.maven.model.Dependency;
@@ -74,26 +73,11 @@ public final class MdaPom implements MdaBuildFile {
                             dependency.getArtifactId()
                         ),
                         dependencyVersion(model, dependency),
-                        packaging(dependency.getType()),
+                        MvnPackagingType.find(dependency.getType()),
                         System.currentTimeMillis()
                     )
             )
             .collect(Collectors.toList());
-    }
-
-    /**
-     * Convert raw packaging string to {@link MvnPackagingType}.
-     *
-     * @param raw Raw packaging string.
-     * @return Type.
-     */
-    private static MvnPackagingType packaging(final String raw) {
-        return Arrays.stream(MvnPackagingType.values())
-            .filter(
-                type -> type.packaging().equals(raw)
-            )
-            .findFirst()
-            .orElse(null);
     }
 
     /**
