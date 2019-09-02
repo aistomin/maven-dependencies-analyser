@@ -31,6 +31,6 @@ final class MdaMojoTest {
      */
     @Test
     void testExecute() throws Exception {
-        new MdaMojo().execute();
+        new MdaMojo("WARNING", "pom.xml").execute();
     }
 }

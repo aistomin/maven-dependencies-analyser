@@ -15,6 +15,13 @@
  */
 package com.github.aistomin.maven.dependencies.analyser;
 
+import com.github.aistomin.maven.browser.MavenCentral;
+import com.github.aistomin.maven.browser.MvnArtifactVersion;
+import com.github.aistomin.maven.browser.MvnRepo;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
@@ -46,15 +53,104 @@ public final class MdaMojo extends AbstractMojo {
     @Parameter(property = "path", defaultValue = "pom.xml")
     private String pom;
 
+    /**
+     * Ctor.
+     */
+    @SuppressWarnings("PMD.UncommentedEmptyConstructor")
+    public MdaMojo() {
+    }
+
+    /**
+     * Ctor.
+     *
+     * @param level Level of the validation.
+     * @param pom The path to the pom.xml file.
+     */
+    public MdaMojo(final String level, final String pom) {
+        this.level = level;
+        this.pom = pom;
+    }
+
+    /**
+     * Main method.
+     *
+     * @throws MojoExecutionException Execution exception.
+     * @throws MojoFailureException Failure exception.
+     * @checkstyle NoJavadocForOverriddenMethodsCheck (10 lines)
+     * @checkstyle IllegalCatchCheck (100 lines)
+     */
+    @SuppressWarnings(
+        {"PMD.AvoidCatchingGenericException", "PMD.AvoidRethrowingException"}
+    )
     @Override
     public void execute() throws MojoExecutionException, MojoFailureException {
-        final String format = "***** %s *****";
-        if ("ERROR".equals(this.level)) {
-            getLog().error(String.format(format, this.pom));
-        } else if ("WARNING".equals(this.level)) {
-            getLog().warn(String.format(format, this.pom));
-        } else {
-            getLog().info(String.format(format, this.pom));
+        try {
+            final List<MvnArtifactVersion> dependencies =
+                new MdaPom(this.pom).dependencies();
+            final Map<MvnArtifactVersion, List<MvnArtifactVersion>> outdated =
+                new HashMap<>();
+            final MvnRepo repo = new MavenCentral();
+            for (final MvnArtifactVersion version : dependencies) {
+                final List<MvnArtifactVersion> newer =
+                    repo.findVersionsNewerThan(version);
+                if (newer != null && !newer.isEmpty()) {
+                    outdated.put(version, newer);
+                }
+            }
+            if (outdated.keySet().size() > 0) {
+                this.throwError(MdaMojo.message(outdated));
+            }
+        } catch (final MojoFailureException failure) {
+            throw failure;
+        } catch (final Exception exception) {
+            throw new MojoExecutionException(
+                "MdaMojo.execute() failed.", exception
+            );
         }
+    }
+
+    /**
+     * Throw pom.xml validation exception.
+     *
+     * @param msg Message.
+     * @throws MojoFailureException Exception.
+     */
+    private void throwError(final String msg) throws MojoFailureException {
+        if ("ERROR".equals(this.level)) {
+            throw new MojoFailureException(msg);
+        } else if ("WARNING".equals(this.level)) {
+            getLog().warn(msg);
+        } else {
+            getLog().info(msg);
+        }
+    }
+
+    /**
+     * Build error message for the outdated dependencies.
+     *
+     * @param outdated Outdated dependencies.
+     * @return Message.
+     */
+    private static String message(
+        final Map<MvnArtifactVersion, List<MvnArtifactVersion>> outdated
+    ) {
+        final StringBuilder msg = new StringBuilder();
+        for (
+            final Map.Entry<MvnArtifactVersion, List<MvnArtifactVersion>> item
+                : outdated.entrySet()
+        ) {
+            msg.append(
+                String.format(
+                    "%s (version %s) has newer versions: %s%n",
+                    item.getKey().artifact().identifier(),
+                    item.getKey().name(),
+                    item.getValue()
+                        .stream()
+                        .map(MvnArtifactVersion::name)
+                        .collect(Collectors.joining("; "))
+                )
+            );
+        }
+        return msg.toString();
     }
 }
