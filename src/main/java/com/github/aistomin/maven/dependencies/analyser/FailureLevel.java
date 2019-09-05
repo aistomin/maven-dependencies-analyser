@@ -15,22 +15,21 @@
  */
 package com.github.aistomin.maven.dependencies.analyser;
 
-import org.junit.jupiter.api.Test;
-
 /**
- * Test for {@link MdaMojo}.
+ * The failure level, using one of the items from this enum client can configure
+ * the build behaviour.
  *
  * @since 0.1
  */
-final class MdaMojoTest {
+public enum FailureLevel {
 
     /**
-     * Check that plugin can be successfully executed.
-     *
-     * @throws Exception If something goes wrong.
+     * We just write the problem into console and do nothing.
      */
-    @Test
-    void testExecute() throws Exception {
-        new MdaMojo(FailureLevel.WARNING, "pom.xml").execute();
-    }
+    WARNING,
+
+    /**
+     * The build will fail.
+     */
+    ERROR
 }

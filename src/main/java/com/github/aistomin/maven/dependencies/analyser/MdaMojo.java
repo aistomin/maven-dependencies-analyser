@@ -42,10 +42,10 @@ import org.apache.maven.plugins.annotations.ResolutionScope;
 public final class MdaMojo extends AbstractMojo {
 
     /**
-     * Level of the validation.
+     * Failure level.
      */
     @Parameter(property = "level", defaultValue = "WARNING")
-    private String level;
+    private FailureLevel level;
 
     /**
      * The path to the pom.xml file.
@@ -63,10 +63,10 @@ public final class MdaMojo extends AbstractMojo {
     /**
      * Ctor.
      *
-     * @param level Level of the validation.
+     * @param level Failure level.
      * @param pom The path to the pom.xml file.
      */
-    public MdaMojo(final String level, final String pom) {
+    public MdaMojo(final FailureLevel level, final String pom) {
         this.level = level;
         this.pom = pom;
     }
@@ -116,9 +116,9 @@ public final class MdaMojo extends AbstractMojo {
      * @throws MojoFailureException Exception.
      */
     private void throwError(final String msg) throws MojoFailureException {
-        if ("ERROR".equals(this.level)) {
+        if (FailureLevel.ERROR.equals(this.level)) {
             throw new MojoFailureException(msg);
-        } else if ("WARNING".equals(this.level)) {
+        } else if (FailureLevel.WARNING.equals(this.level)) {
             getLog().warn(msg);
         } else {
             getLog().info(msg);
