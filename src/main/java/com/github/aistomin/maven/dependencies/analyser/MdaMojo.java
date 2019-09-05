@@ -91,10 +91,25 @@ public final class MdaMojo extends AbstractMojo {
                 new HashMap<>();
             final MvnRepo repo = new MavenCentral();
             for (final MvnArtifactVersion version : dependencies) {
-                final List<MvnArtifactVersion> newer =
-                    repo.findVersionsNewerThan(version);
-                if (newer != null && !newer.isEmpty()) {
-                    outdated.put(version, newer);
+                final List<MvnArtifactVersion> all = repo.findVersions(version.artifact());
+                final MvnArtifactVersion current =
+                    all.stream()
+                        .filter(
+                            found -> found.name().equals(version.name())
+                        )
+                        .findFirst()
+                        .orElse(null);
+                if (current != null) {
+                    final List<MvnArtifactVersion> newer =
+                        all
+                            .stream()
+                            .filter(
+                                found -> found.releaseTimestamp() > current.releaseTimestamp()
+                            )
+                            .collect(Collectors.toList());
+                    if (!newer.isEmpty()) {
+                        outdated.put(version, newer);
+                    }
                 }
             }
             if (outdated.keySet().size() > 0) {
@@ -121,7 +136,9 @@ public final class MdaMojo extends AbstractMojo {
         } else if (FailureLevel.WARNING.equals(this.level)) {
             getLog().warn(msg);
         } else {
-            getLog().info(msg);
+            throw new IllegalStateException(
+                String.format("Unknown level: %s", this.level.name())
+            );
         }
     }
 

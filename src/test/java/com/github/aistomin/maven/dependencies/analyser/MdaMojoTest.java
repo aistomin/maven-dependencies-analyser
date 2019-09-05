@@ -15,6 +15,8 @@
  */
 package com.github.aistomin.maven.dependencies.analyser;
 
+import org.apache.maven.plugin.MojoFailureException;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -25,12 +27,46 @@ import org.junit.jupiter.api.Test;
 final class MdaMojoTest {
 
     /**
-     * Check that plugin can be successfully executed.
+     * The name of the pom file with outdated dependencies.
+     */
+    private static final String ERROR_POM_XML = "error_pom.xml";
+
+    /**
+     * Check that Mojo file can be created with default ctor.
      *
      * @throws Exception If something goes wrong.
      */
     @Test
-    void testExecute() throws Exception {
-        new MdaMojo(FailureLevel.WARNING, "pom.xml").execute();
+    void testCtr() throws Exception {
+        new MdaMojo();
+    }
+
+    /**
+     * Check that plugin can be successfully executed with warning level.
+     *
+     * @throws Exception If something goes wrong.
+     */
+    @Test
+    void testWarning() throws Exception {
+        new MdaMojo(
+            FailureLevel.WARNING,
+            Thread.currentThread().getContextClassLoader()
+                .getResource(MdaMojoTest.ERROR_POM_XML).getPath()
+        ).execute();
+    }
+
+    /**
+     * Check that plugin can be successfully executed with error level.
+     */
+    @Test
+    void testError() {
+        Assertions.assertThrows(
+            MojoFailureException.class,
+            () -> new MdaMojo(
+                FailureLevel.ERROR,
+                Thread.currentThread().getContextClassLoader()
+                    .getResource(MdaMojoTest.ERROR_POM_XML).getPath()
+            ).execute()
+        );
     }
 }
