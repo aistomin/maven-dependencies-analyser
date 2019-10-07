@@ -55,6 +55,7 @@ public final class MdaMojo extends AbstractMojo {
 
     /**
      * Ctor.
+     * @todo: Issue #40. Let's fix it and remove PMD suppression.
      */
     @SuppressWarnings("PMD.UncommentedEmptyConstructor")
     public MdaMojo() {
@@ -76,8 +77,12 @@ public final class MdaMojo extends AbstractMojo {
      *
      * @throws MojoExecutionException Execution exception.
      * @throws MojoFailureException Failure exception.
+     * @todo: Issue #36. Let's fix it and remove checkstyle suppression.
      * @checkstyle NoJavadocForOverriddenMethodsCheck (10 lines)
+     * @todo: Issue #37. Let's fix it and remove checkstyle suppression.
      * @checkstyle IllegalCatchCheck (100 lines)
+     * @todo: Issue #38. Let's fix it and remove PMD suppression.
+     * @todo: Issue #39. Let's fix it and remove PMD suppression.
      */
     @SuppressWarnings(
         {"PMD.AvoidCatchingGenericException", "PMD.AvoidRethrowingException"}
