@@ -17,7 +17,9 @@ package com.github.aistomin.maven.dependencies.analyser;
 
 import com.github.aistomin.maven.browser.MavenCentral;
 import com.github.aistomin.maven.browser.MvnArtifactVersion;
+import com.github.aistomin.maven.browser.MvnException;
 import com.github.aistomin.maven.browser.MvnRepo;
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -29,6 +31,7 @@ import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.plugins.annotations.ResolutionScope;
+import org.codehaus.plexus.util.xml.pull.XmlPullParserException;
 
 /**
  * Maven Dependencies Analyser's Mojo class.
@@ -75,25 +78,21 @@ public final class MdaMojo extends AbstractMojo {
     /**
      * Main method.
      *
-     * @throws MojoExecutionException Execution exception.
      * @throws MojoFailureException Failure exception.
      * @todo: Issue #36. Let's fix it and remove checkstyle suppression.
      * @checkstyle NoJavadocForOverriddenMethodsCheck (10 lines)
      * @todo: Issue #37. Let's fix it and remove checkstyle suppression.
      * @checkstyle IllegalCatchCheck (100 lines)
-     * @todo: Issue #38. Let's fix it and remove PMD suppression.
      * @todo: Issue #39. Let's fix it and remove PMD suppression.
      */
-    @SuppressWarnings(
-        {"PMD.AvoidCatchingGenericException", "PMD.AvoidRethrowingException"}
-    )
+    @SuppressWarnings("PMD.AvoidRethrowingException")
     @Override
     public void execute() throws MojoExecutionException, MojoFailureException {
+        final Map<MvnArtifactVersion, List<MvnArtifactVersion>> outdated =
+            new HashMap<>();
         try {
-            final List<MvnArtifactVersion> dependencies =
-                new MdaPom(this.pom).dependencies();
-            final Map<MvnArtifactVersion, List<MvnArtifactVersion>> outdated =
-                new HashMap<>();
+            final List<MvnArtifactVersion> dependencies;
+            dependencies = new MdaPom(this.pom).dependencies();
             final MvnRepo repo = new MavenCentral();
             for (final MvnArtifactVersion version : dependencies) {
                 final List<MvnArtifactVersion> newer = repo.findVersionsNewerThan(version);
@@ -101,15 +100,13 @@ public final class MdaMojo extends AbstractMojo {
                     outdated.put(version, newer);
                 }
             }
-            if (outdated.keySet().size() > 0) {
-                this.throwError(MdaMojo.message(outdated));
-            }
-        } catch (final MojoFailureException failure) {
-            throw failure;
-        } catch (final Exception exception) {
-            throw new MojoExecutionException(
-                "MdaMojo.execute() failed.", exception
-            );
+        } catch (
+        final IOException | XmlPullParserException | MvnException error
+        ) {
+            throw new MojoExecutionException("Error occurred.", error);
+        }
+        if (outdated.keySet().size() > 0) {
+            this.throwError(MdaMojo.message(outdated));
         }
     }
 

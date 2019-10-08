@@ -16,7 +16,9 @@
 package com.github.aistomin.maven.dependencies.analyser;
 
 import com.github.aistomin.maven.browser.MvnArtifactVersion;
+import java.io.IOException;
 import java.util.List;
+import org.codehaus.plexus.util.xml.pull.XmlPullParserException;
 
 /**
  * The interface of a project's build file(e. g. pom.xml).
@@ -29,7 +31,9 @@ public interface MdaBuildFile {
      * Extract all the project's dependencies.
      *
      * @return The list of dependencies.
-     * @throws Exception If file parsing was not successful.
+     * @throws IOException If the file is not found or corrupted.
+     * @throws XmlPullParserException If file parsing was not successful.
      */
-    List<MvnArtifactVersion> dependencies() throws Exception;
+    List<MvnArtifactVersion> dependencies()
+        throws IOException, XmlPullParserException;
 }

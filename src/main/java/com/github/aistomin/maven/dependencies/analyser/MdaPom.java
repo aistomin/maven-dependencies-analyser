@@ -21,12 +21,14 @@ import com.github.aistomin.maven.browser.MavenGroup;
 import com.github.aistomin.maven.browser.MvnArtifactVersion;
 import com.github.aistomin.maven.browser.MvnPackagingType;
 import java.io.File;
+import java.io.IOException;
 import java.nio.file.Files;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.apache.maven.model.Dependency;
 import org.apache.maven.model.Model;
 import org.apache.maven.model.io.xpp3.MavenXpp3Reader;
+import org.codehaus.plexus.util.xml.pull.XmlPullParserException;
 
 /**
  * The representation of pom.xml file.
@@ -59,7 +61,8 @@ public final class MdaPom implements MdaBuildFile {
     }
 
     @Override
-    public List<MvnArtifactVersion> dependencies() throws Exception {
+    public List<MvnArtifactVersion> dependencies()
+        throws IOException, XmlPullParserException {
         final Model model = new MavenXpp3Reader()
             .read(Files.newInputStream(this.file.toPath()));
         return model
