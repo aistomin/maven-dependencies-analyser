@@ -83,9 +83,7 @@ public final class MdaMojo extends AbstractMojo {
      * @checkstyle NoJavadocForOverriddenMethodsCheck (10 lines)
      * @todo: Issue #37. Let's fix it and remove checkstyle suppression.
      * @checkstyle IllegalCatchCheck (100 lines)
-     * @todo: Issue #39. Let's fix it and remove PMD suppression.
      */
-    @SuppressWarnings("PMD.AvoidRethrowingException")
     @Override
     public void execute() throws MojoExecutionException, MojoFailureException {
         final Map<MvnArtifactVersion, List<MvnArtifactVersion>> outdated =
