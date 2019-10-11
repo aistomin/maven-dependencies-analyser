@@ -60,13 +60,12 @@ final class MdaMojoTest {
      */
     @Test
     void testError() {
-        Assertions.assertThrows(
-            MojoFailureException.class,
-            () -> new MdaMojo(
-                FailureLevel.ERROR,
-                Thread.currentThread().getContextClassLoader()
-                    .getResource(MdaMojoTest.ERROR_POM_XML).getPath()
-            ).execute()
+        final MdaMojo mojo = new MdaMojo();
+        mojo.setLevel(FailureLevel.ERROR);
+        mojo.setPom(
+            Thread.currentThread().getContextClassLoader()
+                .getResource(MdaMojoTest.ERROR_POM_XML).getPath()
         );
+        Assertions.assertThrows(MojoFailureException.class, mojo::execute);
     }
 }

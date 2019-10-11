@@ -58,10 +58,10 @@ public final class MdaMojo extends AbstractMojo {
 
     /**
      * Ctor.
-     * @todo: Issue #40. Let's fix it and remove PMD suppression.
      */
     @SuppressWarnings("PMD.UncommentedEmptyConstructor")
     public MdaMojo() {
+        this(FailureLevel.WARNING, "pom.xml");
     }
 
     /**
@@ -104,6 +104,24 @@ public final class MdaMojo extends AbstractMojo {
         if (outdated.keySet().size() > 0) {
             this.throwError(MdaMojo.message(outdated));
         }
+    }
+
+    /**
+     * Set failure level.
+     *
+     * @param lvl Failure level.
+     */
+    public void setLevel(final FailureLevel lvl) {
+        this.level = lvl;
+    }
+
+    /**
+     * Set the path to the pom.xml file.
+     *
+     * @param path The path to the pom.xml file.
+     */
+    public void setPom(final String path) {
+        this.pom = path;
     }
 
     /**
