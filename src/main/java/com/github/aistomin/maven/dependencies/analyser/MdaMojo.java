@@ -75,13 +75,6 @@ public final class MdaMojo extends AbstractMojo {
         this.pom = pom;
     }
 
-    /**
-     * Main method.
-     *
-     * @throws MojoFailureException Failure exception.
-     * @todo: Issue #36. Let's fix it and remove checkstyle suppression.
-     * @checkstyle NoJavadocForOverriddenMethodsCheck (10 lines)
-     */
     @Override
     public void execute() throws MojoExecutionException, MojoFailureException {
         final Map<MvnArtifactVersion, List<MvnArtifactVersion>> outdated =
