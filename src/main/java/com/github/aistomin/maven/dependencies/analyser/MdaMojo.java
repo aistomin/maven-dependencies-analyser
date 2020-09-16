@@ -59,7 +59,6 @@ public final class MdaMojo extends AbstractMojo {
     /**
      * Ctor.
      */
-    @SuppressWarnings("PMD.UncommentedEmptyConstructor")
     public MdaMojo() {
         this(FailureLevel.WARNING, "pom.xml");
     }
