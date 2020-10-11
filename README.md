@@ -63,8 +63,8 @@ The project is licensed under the terms of the
 ## Have You Found a Bug? Do You Have Any Suggestions?
 
 Although we try our best, we're not robots and bugs are possible :) Also we're
-always happy to hear some suggestions, ideas, thoughts from you. Don't hesitate
-to [create an issue](https://github.com/aistomin/maven-dependencies-analyser/issues/new). 
+always happy to hear some suggestions, ideas and thoughts from you. Don't
+ hesitate to [create an issue](https://github.com/aistomin/maven-dependencies-analyser/issues/new). 
 It will help us to make our project better. Thank you in advance!!!
 
 ## How to Contribute?
