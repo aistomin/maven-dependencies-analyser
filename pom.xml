@@ -218,6 +218,21 @@
                 <artifactId>maven-plugin-plugin</artifactId>
                 <version>3.4</version>
             </plugin>
+            <plugin>
+                <groupId>com.github.aistomin</groupId>
+                <artifactId>maven-dependencies-analyser</artifactId>
+                <version>0.1</version>
+                <configuration>
+                    <level>WARNING</level>
+                </configuration>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
         </plugins>
     </build>
 </project>
