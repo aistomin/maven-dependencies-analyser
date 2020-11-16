@@ -23,6 +23,7 @@ import com.github.aistomin.maven.browser.MvnPackagingType;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.apache.maven.model.Dependency;
@@ -76,7 +77,7 @@ public final class MdaPom implements MdaBuildFile {
                             dependency.getArtifactId()
                         ),
                         dependencyVersion(model, dependency),
-                        MvnPackagingType.find(dependency.getType()),
+                        find(dependency.getType()),
                         System.currentTimeMillis()
                     )
             )
@@ -104,5 +105,17 @@ public final class MdaPom implements MdaBuildFile {
                 );
         }
         return version;
+    }
+
+    /**
+     * Find the {@link MvnPackagingType} by it's string representation.
+     *
+     * @param str String representation of the packaging type.
+     * @return The corresponding enum instance.
+     */
+    private static MvnPackagingType find(final String str) {
+        return Arrays.stream(MvnPackagingType.values())
+            .filter(type -> type.packaging().equals(str))
+            .findFirst().orElse(null);
     }
 }
