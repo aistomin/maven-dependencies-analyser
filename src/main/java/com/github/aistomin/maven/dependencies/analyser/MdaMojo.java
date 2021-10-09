@@ -51,6 +51,12 @@ public final class MdaMojo extends AbstractMojo {
     private FailureLevel level;
 
     /**
+     * Is validation enabled?
+     */
+    @Parameter(property = "enabled", defaultValue = "true")
+    private Boolean enabled;
+
+    /**
      * The path to the pom.xml file.
      */
     @Parameter(property = "path", defaultValue = "pom.xml")
@@ -70,31 +76,52 @@ public final class MdaMojo extends AbstractMojo {
      * @param pom The path to the pom.xml file.
      */
     public MdaMojo(final FailureLevel level, final String pom) {
+        this(level, pom, true);
+    }
+
+    /**
+     * Ctor.
+     *
+     * @param level Failure level.
+     * @param pom The path to the pom.xml file.
+     * @param active Is validation enabled?
+     */
+    public MdaMojo(
+        final FailureLevel level, final String pom, final Boolean active
+    ) {
         this.level = level;
         this.pom = pom;
+        this.enabled = active;
     }
 
     @Override
     public void execute() throws MojoExecutionException, MojoFailureException {
-        final Map<MvnArtifactVersion, List<MvnArtifactVersion>> outdated =
-            new HashMap<>();
-        try {
-            final List<MvnArtifactVersion> dependencies;
-            dependencies = new MdaPom(this.pom).dependencies();
-            final MvnRepo repo = new MavenCentral();
-            for (final MvnArtifactVersion version : dependencies) {
-                final List<MvnArtifactVersion> newer = repo.findVersionsNewerThan(version);
-                if (!newer.isEmpty()) {
-                    outdated.put(version, newer);
+        if (this.enabled) {
+            final Map<MvnArtifactVersion, List<MvnArtifactVersion>> outdated =
+                new HashMap<>();
+            try {
+                final List<MvnArtifactVersion> dependencies;
+                dependencies = new MdaPom(this.pom).dependencies();
+                final MvnRepo repo = new MavenCentral();
+                for (final MvnArtifactVersion version : dependencies) {
+                    final List<MvnArtifactVersion> newer = repo.findVersionsNewerThan(version);
+                    if (!newer.isEmpty()) {
+                        outdated.put(version, newer);
+                    }
                 }
+            } catch (
+            final IOException | XmlPullParserException | MvnException error
+            ) {
+                throw new MojoExecutionException("Error occurred.", error);
             }
-        } catch (
-        final IOException | XmlPullParserException | MvnException error
-        ) {
-            throw new MojoExecutionException("Error occurred.", error);
-        }
-        if (outdated.keySet().size() > 0) {
-            this.throwError(MdaMojo.message(outdated));
+            if (outdated.keySet().size() > 0) {
+                this.throwError(MdaMojo.message(outdated));
+            }
+        } else {
+            final String line = "***********************************************";
+            getLog().warn(line);
+            getLog().warn("Maven dependencies analysis is switched off.");
+            getLog().warn(line);
         }
     }
 
@@ -105,6 +132,15 @@ public final class MdaMojo extends AbstractMojo {
      */
     public void setLevel(final FailureLevel lvl) {
         this.level = lvl;
+    }
+
+    /**
+     * Enable/disable the validation.
+     *
+     * @param active Is validation enabled?
+     */
+    public void setEnabled(final Boolean active) {
+        this.enabled = active;
     }
 
     /**
