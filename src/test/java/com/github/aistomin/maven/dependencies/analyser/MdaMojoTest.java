@@ -62,10 +62,26 @@ final class MdaMojoTest {
     void testError() {
         final MdaMojo mojo = new MdaMojo();
         mojo.setLevel(FailureLevel.ERROR);
+        mojo.setEnabled(true);
         mojo.setPom(
             Thread.currentThread().getContextClassLoader()
                 .getResource(MdaMojoTest.ERROR_POM_XML).getPath()
         );
         Assertions.assertThrows(MojoFailureException.class, mojo::execute);
+    }
+
+    /**
+     * Check that plugin can be successfully disabled.
+     *
+     * @throws Exception If something goes wrong.
+     */
+    @Test
+    void testDisabled() throws Exception {
+        new MdaMojo(
+            FailureLevel.WARNING,
+            Thread.currentThread().getContextClassLoader()
+                .getResource(MdaMojoTest.ERROR_POM_XML).getPath(),
+            false
+        ).execute();
     }
 }
