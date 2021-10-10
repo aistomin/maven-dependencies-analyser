@@ -27,7 +27,7 @@ Add the following configuration to your project's `pom.xml`:
         <plugin>
             <groupId>com.github.aistomin</groupId>
             <artifactId>maven-dependencies-analyser</artifactId>
-            <version>0.1.1</version>
+            <version>0.1.2</version>
             <configuration>
                 <level>ERROR</level>
             </configuration>
@@ -48,6 +48,15 @@ With this configuration the Maven build will fail in case any of the
 dependencies of your project is out-of-date. If you do not want the build to
  fail, but rather just to show the warning, please change the ```level``` 
  configuration value from ```ERROR``` to ```WARNING```.
+
+Using the ```enabled``` configuration you may easily turn the complete 
+dependencies validation off. Then the configuration section will look like:
+```
+<configuration>
+    <level>ERROR</level>
+    <enabled>false</enabled>
+</configuration>
+```
   
 For the further information, please check out our 
 [example project](https://github.com/aistomin/maven-dependencies-analyser-examples).
