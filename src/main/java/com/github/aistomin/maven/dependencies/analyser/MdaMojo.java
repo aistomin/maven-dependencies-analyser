@@ -72,25 +72,25 @@ public final class MdaMojo extends AbstractMojo {
     /**
      * Ctor.
      *
-     * @param level Failure level.
-     * @param pom The path to the pom.xml file.
+     * @param severity Failure level.
+     * @param file The path to the pom.xml file.
      */
-    public MdaMojo(final FailureLevel level, final String pom) {
-        this(level, pom, true);
+    public MdaMojo(final FailureLevel severity, final String file) {
+        this(severity, file, true);
     }
 
     /**
      * Ctor.
      *
-     * @param level Failure level.
-     * @param pom The path to the pom.xml file.
+     * @param severity Failure level.
+     * @param file The path to the pom.xml file.
      * @param active Is validation enabled?
      */
     public MdaMojo(
-        final FailureLevel level, final String pom, final Boolean active
+        final FailureLevel severity, final String file, final Boolean active
     ) {
-        this.level = level;
-        this.pom = pom;
+        this.level = severity;
+        this.pom = file;
         this.enabled = active;
     }
 
@@ -104,7 +104,8 @@ public final class MdaMojo extends AbstractMojo {
                 dependencies = new MdaPom(this.pom).dependencies();
                 final MvnRepo repo = new MavenCentral();
                 for (final MvnArtifactVersion version : dependencies) {
-                    final List<MvnArtifactVersion> newer = repo.findVersionsNewerThan(version);
+                    final List<MvnArtifactVersion> newer =
+                        repo.findVersionsNewerThan(version);
                     if (!newer.isEmpty()) {
                         outdated.put(version, newer);
                     }
@@ -118,7 +119,8 @@ public final class MdaMojo extends AbstractMojo {
                 this.throwError(MdaMojo.message(outdated));
             }
         } else {
-            final String line = "***********************************************";
+            final String line =
+                "***********************************************";
             getLog().warn(line);
             getLog().warn("Maven dependencies analysis is switched off.");
             getLog().warn(line);
