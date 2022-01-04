@@ -13,8 +13,8 @@ Maven plugin that analyses and validates that all the project dependencies are
 
 ### System Requirements
 
- - JDK 8 or higher.
- - Apache Maven 3.3.9 or higher
+ - JDK 15 or higher.
+ - Apache Maven 3.8.3 or higher
  
 ### Validate Project Dependencies
 
@@ -27,7 +27,7 @@ Add the following configuration to your project's `pom.xml`:
         <plugin>
             <groupId>com.github.aistomin</groupId>
             <artifactId>maven-dependencies-analyser</artifactId>
-            <version>0.1.2</version>
+            <version>0.2</version>
             <configuration>
                 <level>ERROR</level>
             </configuration>
