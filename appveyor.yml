@@ -7,7 +7,6 @@ image: Ubuntu2004
 environment:
   matrix:
     - JAVA_HOME: /usr/lib/jvm/java-15-openjdk-amd64
-    - CODECOV_TOKEN: 57feef7a-8d7c-4d50-82ca-56e5b7e64586
 build_script:
   - echo $JAVA_HOME
   - mvn clean install package javadoc:javadoc
