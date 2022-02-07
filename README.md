@@ -1,6 +1,6 @@
 # Maven Dependencies Analyser
 
-[![Build Status](https://api.travis-ci.com/aistomin/maven-dependencies-analyser.svg?branch=master)](https://app.travis-ci.com/github/aistomin/maven-dependencies-analyser)
+[![Build status](https://ci.appveyor.com/api/projects/status/rt0ocf631xx6yeab/branch/master?svg=true)](https://ci.appveyor.com/project/aistomin/maven-dependencies-analyser/branch/master)
 [![Hits-of-Code](https://hitsofcode.com/github/aistomin/maven-dependencies-analyser)](https://hitsofcode.com/view/github/aistomin/maven-dependencies-analyser)
 [![codecov](https://codecov.io/gh/aistomin/maven-dependencies-analyser/branch/master/graph/badge.svg)](https://codecov.io/gh/aistomin/maven-dependencies-analyser)
 [![Maven Central](https://maven-badges.herokuapp.com/maven-central/com.github.aistomin/maven-dependencies-analyser/badge.svg)](https://maven-badges.herokuapp.com/maven-central/com.github.aistomin/maven-dependencies-analyser)
