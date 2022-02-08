@@ -30,10 +30,20 @@ public interface MdaBuildFile {
     /**
      * Extract all the project's dependencies.
      *
-     * @return The list of dependencies.
+     * @return The list of the dependencies.
      * @throws IOException If the file is not found or corrupted.
      * @throws XmlPullParserException If file parsing was not successful.
      */
     List<MvnArtifactVersion> dependencies()
+        throws IOException, XmlPullParserException;
+
+    /**
+     * Extract all the project's plugins.
+     *
+     * @return The list of the plugins.
+     * @throws IOException If the file is not found or corrupted.
+     * @throws XmlPullParserException If file parsing was not successful.
+     */
+    List<MvnArtifactVersion> plugins()
         throws IOException, XmlPullParserException;
 }

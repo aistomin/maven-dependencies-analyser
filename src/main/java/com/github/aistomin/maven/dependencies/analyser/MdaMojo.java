@@ -20,6 +20,7 @@ import com.github.aistomin.maven.browser.MvnArtifactVersion;
 import com.github.aistomin.maven.browser.MvnException;
 import com.github.aistomin.maven.browser.MvnRepo;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -100,8 +101,10 @@ public final class MdaMojo extends AbstractMojo {
             final Map<MvnArtifactVersion, List<MvnArtifactVersion>> outdated =
                 new HashMap<>();
             try {
-                final List<MvnArtifactVersion> dependencies;
-                dependencies = new MdaPom(this.pom).dependencies();
+                final List<MvnArtifactVersion> dependencies = new ArrayList<>();
+                final MdaPom config = new MdaPom(this.pom);
+                dependencies.addAll(config.dependencies());
+                dependencies.addAll(config.plugins());
                 final MvnRepo repo = new MavenCentral();
                 for (final MvnArtifactVersion version : dependencies) {
                     final List<MvnArtifactVersion> newer =

@@ -33,6 +33,15 @@ import org.junit.jupiter.api.Test;
 final class MdaPomTest {
 
     /**
+     * Sample pom file.
+     */
+    private final String sample = Thread
+        .currentThread()
+        .getContextClassLoader()
+        .getResource("sample_pom.xml")
+        .getFile();
+
+    /**
      * Check that we can correctly read the dependencies from the pom.xml.
      *
      * @throws Exception If something goes wrong.
@@ -71,14 +80,47 @@ final class MdaPomTest {
                 ), junit, MvnPackagingType.JAR, System.currentTimeMillis()
             )
         );
-        final List<MvnArtifactVersion> dependencies = new MdaPom(
-            Thread.currentThread().getContextClassLoader()
-                .getResource("sample_pom.xml").getFile()
-        ).dependencies();
+        final List<MvnArtifactVersion> dependencies =
+            new MdaPom(this.sample).dependencies();
         Assertions.assertEquals(expected.size(), dependencies.size());
         for (final MvnArtifactVersion dependency : dependencies) {
             Assertions.assertTrue(
                 expected.stream().anyMatch(exp -> exp.equals(dependency))
+            );
+        }
+    }
+
+    /**
+     * Check that we can correctly read the plugins from the pom.xml.
+     *
+     * @throws Exception If something goes wrong.
+     */
+    @Test
+    void testPlugins() throws Exception {
+        final List<MvnArtifactVersion> expected = Arrays.asList(
+            new MavenArtifactVersion(
+                new MavenArtifact(
+                    new MavenGroup("org.apache.maven.plugins"),
+                    "maven-surefire-plugin"
+                ), "2.22.1", MvnPackagingType.JAR, System.currentTimeMillis()
+            ),
+            new MavenArtifactVersion(
+                new MavenArtifact(
+                    new MavenGroup("com.qulice"), "qulice-maven-plugin"
+                ), "0.18.19", MvnPackagingType.JAR, System.currentTimeMillis()
+            ),
+            new MavenArtifactVersion(
+                new MavenArtifact(
+                    new MavenGroup("org.jacoco"), "jacoco-maven-plugin"
+                ), "0.8.4", MvnPackagingType.JAR, System.currentTimeMillis()
+            )
+        );
+        final List<MvnArtifactVersion> plugins =
+            new MdaPom(this.sample).plugins();
+        Assertions.assertEquals(expected.size(), plugins.size());
+        for (final MvnArtifactVersion plugin : plugins) {
+            Assertions.assertTrue(
+                expected.stream().anyMatch(exp -> exp.equals(plugin))
             );
         }
     }

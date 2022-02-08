@@ -23,10 +23,11 @@ import com.github.aistomin.maven.browser.MvnPackagingType;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
-import org.apache.maven.model.Dependency;
+import org.apache.maven.model.Build;
 import org.apache.maven.model.Model;
 import org.apache.maven.model.io.xpp3.MavenXpp3Reader;
 import org.codehaus.plexus.util.xml.pull.XmlPullParserException;
@@ -76,7 +77,7 @@ public final class MdaPom implements MdaBuildFile {
                             new MavenGroup(dependency.getGroupId()),
                             dependency.getArtifactId()
                         ),
-                        dependencyVersion(model, dependency),
+                        dependencyVersion(model, dependency.getVersion()),
                         find(dependency.getType()),
                         System.currentTimeMillis()
                     )
@@ -84,27 +85,50 @@ public final class MdaPom implements MdaBuildFile {
             .collect(Collectors.toList());
     }
 
+    @Override
+    public List<MvnArtifactVersion> plugins()
+        throws IOException, XmlPullParserException {
+        final Model model = new MavenXpp3Reader()
+            .read(Files.newInputStream(this.file.toPath()));
+        final Build build = model.getBuild();
+        return build != null ? build.getPlugins()
+            .stream()
+            .map(
+                plugin ->
+                    new MavenArtifactVersion(
+                        new MavenArtifact(
+                            new MavenGroup(plugin.getGroupId()),
+                            plugin.getArtifactId()
+                        ),
+                        dependencyVersion(model, plugin.getVersion()),
+                        MvnPackagingType.JAR,
+                        System.currentTimeMillis()
+                    )
+            )
+            .collect(Collectors.toList()) : new ArrayList<>();
+    }
+
     /**
      * Sometimes the version of the artifact can be set as property. We need to
      * get the real value.
      *
      * @param model The pom.xml model.
-     * @param dependency Dependency.
+     * @param version Dependency's version.
      * @return The real version.
      */
     private static String dependencyVersion(
-        final Model model, final Dependency dependency
+        final Model model, final String version
     ) {
-        String version = dependency.getVersion();
         final String marker = "${";
+        String result = version;
         if (version.contains(marker)) {
-            version = model
+            result = model
                 .getProperties()
                 .getProperty(
                     version.replace(marker, "").replace("}", "")
                 );
         }
-        return version;
+        return result;
     }
 
     /**
