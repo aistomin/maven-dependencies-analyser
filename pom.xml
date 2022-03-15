@@ -41,7 +41,7 @@
     </distributionManagement>
     <properties>
         <junitVersion>5.8.2</junitVersion>
-        <mvnApiVersion>3.8.4</mvnApiVersion>
+        <mvnApiVersion>3.8.5</mvnApiVersion>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.source>15</maven.compiler.source>
         <linkXRef>false</linkXRef>
