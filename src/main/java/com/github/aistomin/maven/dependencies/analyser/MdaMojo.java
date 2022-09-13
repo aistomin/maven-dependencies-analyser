@@ -118,15 +118,17 @@ public final class MdaMojo extends AbstractMojo {
             ) {
                 throw new MojoExecutionException("Error occurred.", error);
             }
-            if (outdated.keySet().size() > 0) {
+            if (outdated.size() > 0) {
                 this.throwError(MdaMojo.message(outdated));
+            } else {
+                this.getLog().info("All the dependencies are up to date.");
             }
         } else {
             final String line =
                 "***********************************************";
-            getLog().warn(line);
-            getLog().warn("Maven dependencies analysis is switched off.");
-            getLog().warn(line);
+            this.getLog().warn(line);
+            this.getLog().warn("Maven dependencies analysis is switched off.");
+            this.getLog().warn(line);
         }
     }
 
