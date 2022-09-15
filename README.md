@@ -27,7 +27,7 @@ Add the following configuration to your project's `pom.xml`:
         <plugin>
             <groupId>com.github.aistomin</groupId>
             <artifactId>maven-dependencies-analyser</artifactId>
-            <version>1.2</version>
+            <version>1.3</version>
             <configuration>
                 <level>ERROR</level>
             </configuration>
