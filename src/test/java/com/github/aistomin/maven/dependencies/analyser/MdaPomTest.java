@@ -78,6 +78,12 @@ final class MdaPomTest {
                     new MavenGroup(jupiter),
                     "junit-jupiter-engine"
                 ), junit, MvnPackagingType.JAR, System.currentTimeMillis()
+            ),
+            new MavenArtifactVersion(
+                new MavenArtifact(
+                    new MavenGroup("org.springframework.boot"),
+                    "spring-boot-starter"
+                ), "3.0.0-M5", MvnPackagingType.JAR, System.currentTimeMillis()
             )
         );
         final List<MvnArtifactVersion> dependencies =
