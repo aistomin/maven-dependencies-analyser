@@ -107,10 +107,20 @@ public final class MdaMojo extends AbstractMojo {
                 dependencies.addAll(config.plugins());
                 final MvnRepo repo = new MavenCentral();
                 for (final MvnArtifactVersion version : dependencies) {
-                    final List<MvnArtifactVersion> newer =
-                        repo.findVersionsNewerThan(version);
-                    if (!newer.isEmpty()) {
-                        outdated.put(version, newer);
+                    try {
+                        final List<MvnArtifactVersion> newer =
+                            repo.findVersionsNewerThan(version);
+                        if (!newer.isEmpty()) {
+                            outdated.put(version, newer);
+                        }
+                    } catch (final IllegalStateException exception) {
+                        this.getLog().warn(
+                            String.format(
+                                "Can not analyse %s. %s",
+                                version.toString(),
+                                exception.getMessage()
+                            ), exception
+                        );
                     }
                 }
             } catch (
