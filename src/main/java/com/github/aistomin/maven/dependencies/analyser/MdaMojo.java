@@ -17,22 +17,18 @@ package com.github.aistomin.maven.dependencies.analyser;
 
 import com.github.aistomin.maven.browser.MavenCentral;
 import com.github.aistomin.maven.browser.MvnArtifactVersion;
-import com.github.aistomin.maven.browser.MvnException;
 import com.github.aistomin.maven.browser.MvnRepo;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import org.apache.maven.plugin.AbstractMojo;
-import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.plugins.annotations.ResolutionScope;
-import org.codehaus.plexus.util.xml.pull.XmlPullParserException;
 
 /**
  * Maven Dependencies Analyser's Mojo class.
@@ -96,7 +92,7 @@ public final class MdaMojo extends AbstractMojo {
     }
 
     @Override
-    public void execute() throws MojoExecutionException, MojoFailureException {
+    public void execute() throws MojoFailureException {
         if (this.enabled) {
             final Map<MvnArtifactVersion, List<MvnArtifactVersion>> outdated =
                 new HashMap<>();
@@ -113,25 +109,25 @@ public final class MdaMojo extends AbstractMojo {
                         if (!newer.isEmpty()) {
                             outdated.put(version, newer);
                         }
-                    } catch (final IllegalStateException exception) {
-                        this.getLog().warn(
+                    } catch (final Throwable exception) {
+                        this.throwError(
                             String.format(
                                 "Can not analyse %s. %s",
                                 version.toString(),
                                 exception.getMessage()
-                            ), exception
+                            )
                         );
                     }
                 }
-            } catch (
-            final IOException | XmlPullParserException | MvnException error
-            ) {
-                throw new MojoExecutionException("Error occurred.", error);
-            }
-            if (outdated.size() > 0) {
-                this.throwError(MdaMojo.message(outdated));
-            } else {
-                this.getLog().info("All the dependencies are up to date.");
+                if (outdated.size() > 0) {
+                    this.throwError(MdaMojo.message(outdated));
+                } else {
+                    this.getLog().info("All the dependencies are up to date.");
+                }
+            } catch (final Throwable error) {
+                this.throwError(
+                    String.format("Error occurred: %s", error.getMessage())
+                );
             }
         } else {
             final String line =
