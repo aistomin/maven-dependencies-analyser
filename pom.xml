@@ -56,6 +56,12 @@
             <groupId>org.apache.maven</groupId>
             <artifactId>maven-model</artifactId>
             <version>${mvnApiVersion}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.apache.maven</groupId>
+                    <artifactId>maven-xml-impl</artifactId>
+                </exclusion>
+            </exclusions>
             <scope>provided</scope>
         </dependency>
         <dependency>
@@ -66,14 +72,33 @@
                     <groupId>org.eclipse.sisu</groupId>
                     <artifactId>org.eclipse.sisu.plexus</artifactId>
                 </exclusion>
+                <exclusion>
+                    <groupId>org.eclipse.sisu</groupId>
+                    <artifactId>org.eclipse.sisu.inject</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.apache.maven</groupId>
+                    <artifactId>plexus-utils</artifactId>
+                </exclusion>
             </exclusions>
             <version>${mvnApiVersion}</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
-            <groupId>org.codehaus.plexus</groupId>
+            <groupId>org.apache.maven</groupId>
             <artifactId>plexus-utils</artifactId>
-            <version>3.5.0</version>
+            <version>4.0.0-alpha-2</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.codehaus.plexus</groupId>
+                    <artifactId>plexus-utils</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.apache.maven</groupId>
+                    <artifactId>plexus-utils</artifactId>
+                </exclusion>
+            </exclusions>
+            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.maven.plugin-tools</groupId>
