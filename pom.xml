@@ -41,7 +41,7 @@
     </distributionManagement>
     <properties>
         <junitVersion>5.9.1</junitVersion>
-        <mvnApiVersion>4.0.0-alpha-2</mvnApiVersion>
+        <mvnApiVersion>4.0.0-alpha-3</mvnApiVersion>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.source>18</maven.compiler.source>
         <linkXRef>false</linkXRef>
@@ -88,7 +88,7 @@
         <dependency>
             <groupId>org.apache.maven</groupId>
             <artifactId>plexus-utils</artifactId>
-            <version>4.0.0-alpha-2</version>
+            <version>${mvnApiVersion}</version>
             <exclusions>
                 <exclusion>
                     <groupId>org.codehaus.plexus</groupId>
