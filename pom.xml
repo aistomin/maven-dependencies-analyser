@@ -45,7 +45,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.source>18</maven.compiler.source>
         <linkXRef>false</linkXRef>
-        <mavenVersion>3.7.0</mavenVersion>
+        <mavenVersion>3.7.1</mavenVersion>
     </properties>
     <dependencies>
         <dependency>
