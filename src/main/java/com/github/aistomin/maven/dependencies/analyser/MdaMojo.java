@@ -123,8 +123,10 @@ public final class MdaMojo extends AbstractMojo {
                 }
                 if (outdated.size() > 0) {
                     this.throwError(MdaMojo.message(outdated));
-                } if (skipped.size() > 0) {
-                    this.getLog().info("Not all the dependencies were checked. See the errors above.");
+                } else if (skipped.size() > 0) {
+                    this.getLog().info(
+                        "Not all the dependencies were checked. See the logs."
+                    );
                 } else {
                     this.getLog().info("All the dependencies are up to date.");
                 }
