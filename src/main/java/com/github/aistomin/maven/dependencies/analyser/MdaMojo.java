@@ -94,14 +94,15 @@ public final class MdaMojo extends AbstractMojo {
     @Override
     public void execute() throws MojoFailureException {
         if (this.enabled) {
-            final Map<MvnArtifactVersion, List<MvnArtifactVersion>> outdated =
-                new HashMap<>();
+            final var outdated =
+                new HashMap<MvnArtifactVersion, List<MvnArtifactVersion>>();
             try {
                 final List<MvnArtifactVersion> dependencies = new ArrayList<>();
                 final MdaPom config = new MdaPom(this.pom);
                 dependencies.addAll(config.dependencies());
                 dependencies.addAll(config.plugins());
                 final MvnRepo repo = new MavenCentral();
+                final var skipped = new ArrayList<MvnArtifactVersion>();
                 for (final MvnArtifactVersion version : dependencies) {
                     try {
                         final List<MvnArtifactVersion> newer =
@@ -110,6 +111,7 @@ public final class MdaMojo extends AbstractMojo {
                             outdated.put(version, newer);
                         }
                     } catch (final Throwable exception) {
+                        skipped.add(version);
                         this.throwError(
                             String.format(
                                 "Can not analyse %s. %s",
@@ -121,6 +123,10 @@ public final class MdaMojo extends AbstractMojo {
                 }
                 if (outdated.size() > 0) {
                     this.throwError(MdaMojo.message(outdated));
+                } else if (skipped.size() > 0) {
+                    this.getLog().info(
+                        "Not all the dependencies were checked. See the logs."
+                    );
                 } else {
                     this.getLog().info("All the dependencies are up to date.");
                 }
