@@ -41,7 +41,7 @@
     </distributionManagement>
     <properties>
         <junitVersion>5.9.2</junitVersion>
-        <mvnApiVersion>4.0.0-alpha-3</mvnApiVersion>
+        <mvnApiVersion>4.0.0-alpha-4</mvnApiVersion>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.source>18</maven.compiler.source>
         <linkXRef>false</linkXRef>
