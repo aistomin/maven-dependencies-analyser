@@ -29,6 +29,8 @@ import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.plugins.annotations.ResolutionScope;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Maven Dependencies Analyser's Mojo class.
@@ -40,6 +42,11 @@ import org.apache.maven.plugins.annotations.ResolutionScope;
     requiresDependencyResolution = ResolutionScope.TEST
 )
 public final class MdaMojo extends AbstractMojo {
+
+    /**
+     * Logger.
+     */
+    private final Logger logger = LoggerFactory.getLogger(getClass());
 
     /**
      * Failure level.
@@ -124,11 +131,11 @@ public final class MdaMojo extends AbstractMojo {
                 if (outdated.size() > 0) {
                     this.throwError(MdaMojo.message(outdated));
                 } else if (skipped.size() > 0) {
-                    this.getLog().info(
+                    this.logger.info(
                         "Not all the dependencies were checked. See the logs."
                     );
                 } else {
-                    this.getLog().info("All the dependencies are up to date.");
+                    this.logger.info("All the dependencies are up to date.");
                 }
             } catch (final Throwable error) {
                 this.throwError(
@@ -138,9 +145,9 @@ public final class MdaMojo extends AbstractMojo {
         } else {
             final String line =
                 "***********************************************";
-            this.getLog().warn(line);
-            this.getLog().warn("Maven dependencies analysis is switched off.");
-            this.getLog().warn(line);
+            this.logger.warn(line);
+            this.logger.warn("Maven dependencies analysis is switched off.");
+            this.logger.warn(line);
         }
     }
 
@@ -181,7 +188,7 @@ public final class MdaMojo extends AbstractMojo {
         if (FailureLevel.ERROR.equals(this.level)) {
             throw new MojoFailureException(msg);
         } else if (FailureLevel.WARNING.equals(this.level)) {
-            getLog().warn(msg);
+            this.logger.warn(msg);
         } else {
             throw new IllegalStateException(
                 String.format("Unknown level: %s", this.level.name())

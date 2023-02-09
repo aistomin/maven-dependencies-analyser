@@ -40,18 +40,29 @@
         </repository>
     </distributionManagement>
     <properties>
-        <junitVersion>5.9.2</junitVersion>
-        <mvnApiVersion>4.0.0-alpha-4</mvnApiVersion>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.source>18</maven.compiler.source>
         <linkXRef>false</linkXRef>
+        <junitVersion>5.9.2</junitVersion>
+        <mvnApiVersion>4.0.0-alpha-4</mvnApiVersion>
         <mavenVersion>3.7.1</mavenVersion>
+        <slf4j-api.version>2.0.6</slf4j-api.version>
     </properties>
     <dependencies>
         <dependency>
             <groupId>com.github.aistomin</groupId>
             <artifactId>maven-browser</artifactId>
             <version>3.0</version>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+            <version>${slf4j-api.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-simple</artifactId>
+            <version>${slf4j-api.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.maven</groupId>
