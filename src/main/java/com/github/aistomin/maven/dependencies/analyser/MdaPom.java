@@ -82,6 +82,7 @@ public final class MdaPom implements MdaBuildFile {
                         System.currentTimeMillis()
                     )
             )
+            .filter(version -> version.name() != null)
             .collect(Collectors.toList());
     }
 
@@ -121,7 +122,7 @@ public final class MdaPom implements MdaBuildFile {
     ) {
         final String marker = "${";
         String result = version;
-        if (version.contains(marker)) {
+        if (version != null && version.contains(marker)) {
             result = model
                 .getProperties()
                 .getProperty(
