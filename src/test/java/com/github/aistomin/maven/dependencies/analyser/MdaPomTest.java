@@ -42,6 +42,15 @@ final class MdaPomTest {
         .getFile();
 
     /**
+     * Parentless sample pom file.
+     */
+    private final String parentlessSample = Thread
+        .currentThread()
+        .getContextClassLoader()
+        .getResource("parentless_pom.xml")
+        .getFile();
+
+    /**
      * Check that we can correctly read the dependencies from the pom.xml.
      *
      * @throws Exception If something goes wrong.
@@ -129,5 +138,21 @@ final class MdaPomTest {
                 expected.stream().anyMatch(exp -> exp.equals(plugin))
             );
         }
+    }
+
+    /**
+     * Check that we can correctly read the parent artifact from the pom.xml.
+     *
+     * @throws Exception If something goes wrong.
+     */
+    @Test
+    void testParent() throws Exception {
+        Assertions.assertEquals(
+            "org.springframework.boot:spring-boot-starter-parent:2.7.9",
+            new MdaPom(this.sample).parent().identifier()
+        );
+        Assertions.assertNull(
+            new MdaPom(this.parentlessSample).parent()
+        );
     }
 }

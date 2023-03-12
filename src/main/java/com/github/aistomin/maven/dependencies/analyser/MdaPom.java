@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 import org.apache.maven.model.Build;
 import org.apache.maven.model.Model;
+import org.apache.maven.model.Parent;
 import org.apache.maven.model.io.xpp3.MavenXpp3Reader;
 import org.codehaus.plexus.util.xml.pull.XmlPullParserException;
 
@@ -63,10 +64,29 @@ public final class MdaPom implements MdaBuildFile {
     }
 
     @Override
+    public MvnArtifactVersion parent()
+        throws IOException, XmlPullParserException {
+        final Model model = this.model();
+        final Parent parent = model.getParent();
+        if (parent != null) {
+            return new MavenArtifactVersion(
+                new MavenArtifact(
+                    new MavenGroup(parent.getGroupId()),
+                    parent.getArtifactId()
+                ),
+                dependencyVersion(model, parent.getVersion()),
+                MvnPackagingType.JAR,
+                System.currentTimeMillis()
+            );
+        } else {
+            return null;
+        }
+    }
+
+    @Override
     public List<MvnArtifactVersion> dependencies()
         throws IOException, XmlPullParserException {
-        final Model model = new MavenXpp3Reader()
-            .read(Files.newInputStream(this.file.toPath()));
+        final Model model = this.model();
         return model
             .getDependencies()
             .stream()
@@ -89,8 +109,7 @@ public final class MdaPom implements MdaBuildFile {
     @Override
     public List<MvnArtifactVersion> plugins()
         throws IOException, XmlPullParserException {
-        final Model model = new MavenXpp3Reader()
-            .read(Files.newInputStream(this.file.toPath()));
+        final Model model = this.model();
         final Build build = model.getBuild();
         return build != null ? build.getPlugins()
             .stream()
@@ -107,6 +126,18 @@ public final class MdaPom implements MdaBuildFile {
                     )
             )
             .collect(Collectors.toList()) : new ArrayList<>();
+    }
+
+    /**
+     * Parse the model.
+     *
+     * @return Model.
+     * @throws IOException If the file is not found or corrupted.
+     * @throws XmlPullParserException If file parsing was not successful.
+     */
+    private Model model() throws IOException, XmlPullParserException {
+        return new MavenXpp3Reader()
+            .read(Files.newInputStream(this.file.toPath()));
     }
 
     /**

@@ -33,11 +33,9 @@ final class MdaMojoTest {
 
     /**
      * Check that Mojo file can be created with default ctor.
-     *
-     * @throws Exception If something goes wrong.
      */
     @Test
-    void testCtr() throws Exception {
+    void testCtr() {
         new MdaMojo();
     }
 
@@ -82,6 +80,20 @@ final class MdaMojoTest {
             Thread.currentThread().getContextClassLoader()
                 .getResource(MdaMojoTest.ERROR_POM_XML).getPath(),
             false
+        ).execute();
+    }
+
+    /**
+     * Check that we correctly work with the configurations with paren artifact.
+     *
+     * @throws Exception If something goes wrong.
+     */
+    @Test
+    void testParent() throws Exception {
+        new MdaMojo(
+            FailureLevel.WARNING,
+            Thread.currentThread().getContextClassLoader()
+                .getResource("sample_pom.xml").getPath()
         ).execute();
     }
 }
