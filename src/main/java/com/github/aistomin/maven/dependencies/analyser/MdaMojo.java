@@ -106,6 +106,10 @@ public final class MdaMojo extends AbstractMojo {
             try {
                 final List<MvnArtifactVersion> dependencies = new ArrayList<>();
                 final MdaPom config = new MdaPom(this.pom);
+                final MvnArtifactVersion parent = config.parent();
+                if (parent != null) {
+                    dependencies.add(parent);
+                }
                 dependencies.addAll(config.dependencies());
                 dependencies.addAll(config.plugins());
                 final MvnRepo repo = new MavenCentral();

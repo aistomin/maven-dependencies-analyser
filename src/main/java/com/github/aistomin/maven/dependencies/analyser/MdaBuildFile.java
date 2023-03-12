@@ -28,6 +28,15 @@ import org.codehaus.plexus.util.xml.pull.XmlPullParserException;
 public interface MdaBuildFile {
 
     /**
+     * Parent artifact.
+     *
+     * @return Parent.
+     * @throws IOException If the file is not found or corrupted.
+     * @throws XmlPullParserException If file parsing was not successful.
+     */
+    MvnArtifactVersion parent() throws IOException, XmlPullParserException;
+
+    /**
      * Extract all the project's dependencies.
      *
      * @return The list of the dependencies.

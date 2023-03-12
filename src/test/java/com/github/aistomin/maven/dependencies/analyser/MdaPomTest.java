@@ -130,4 +130,18 @@ final class MdaPomTest {
             );
         }
     }
+
+    /**
+     * Check that we can correctly read the parent artifact from the pom.xml.
+     *
+     * @throws Exception If something goes wrong.
+     */
+    @Test
+    void testParent() throws Exception {
+        final MvnArtifactVersion parent = new MdaPom(this.sample).parent();
+        Assertions.assertEquals(
+            "org.springframework.boot:spring-boot-starter-parent:3.0.4",
+            parent.identifier()
+        );
+    }
 }
