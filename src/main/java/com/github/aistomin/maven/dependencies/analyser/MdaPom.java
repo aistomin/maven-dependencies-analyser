@@ -125,6 +125,7 @@ public final class MdaPom implements MdaBuildFile {
                         System.currentTimeMillis()
                     )
             )
+            .filter(version -> version.name() != null)
             .collect(Collectors.toList()) : new ArrayList<>();
     }
 
