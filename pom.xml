@@ -97,9 +97,9 @@
             <scope>provided</scope>
         </dependency>
         <dependency>
-            <groupId>org.codehaus.plexus</groupId>
+            <groupId>org.apache.maven</groupId>
             <artifactId>plexus-utils</artifactId>
-            <version>4.0.0</version>
+            <version>4.0.0-alpha-5</version>
             <exclusions>
                 <exclusion>
                     <groupId>org.codehaus.plexus</groupId>
