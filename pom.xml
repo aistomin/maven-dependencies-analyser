@@ -46,7 +46,7 @@
         <junitVersion>5.10.0</junitVersion>
         <mvnApiVersion>4.0.0-alpha-7</mvnApiVersion>
         <mavenVersion>3.9.0</mavenVersion>
-        <slf4j-api.version>2.0.7</slf4j-api.version>
+        <slf4j-api.version>2.0.9</slf4j-api.version>
     </properties>
     <dependencies>
         <dependency>
