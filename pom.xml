@@ -44,7 +44,7 @@
         <maven.compiler.source>18</maven.compiler.source>
         <linkXRef>false</linkXRef>
         <junitVersion>5.10.1</junitVersion>
-        <mvnApiVersion>4.0.0-alpha-7</mvnApiVersion>
+        <mvnApiVersion>4.0.0-alpha-8</mvnApiVersion>
         <mavenVersion>3.10.1</mavenVersion>
         <slf4j-api.version>2.0.9</slf4j-api.version>
     </properties>
