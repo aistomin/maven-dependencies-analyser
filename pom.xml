@@ -74,6 +74,10 @@
                     <groupId>org.eclipse.sisu</groupId>
                     <artifactId>org.eclipse.sisu.inject</artifactId>
                 </exclusion>
+                <exclusion>
+                    <groupId>org.apache.maven</groupId>
+                    <artifactId>maven-xml-impl</artifactId>
+                </exclusion>
             </exclusions>
         </dependency>
         <dependency>
