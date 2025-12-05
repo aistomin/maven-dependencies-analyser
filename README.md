@@ -13,7 +13,7 @@ Maven plugin that analyses and validates that all the project dependencies are
 
 ### System Requirements
 
- - JDK 17 or higher.
+ - JDK 21 or higher.
  - Apache Maven 3.8.3 or higher
  
 ### Validate Project Dependencies
