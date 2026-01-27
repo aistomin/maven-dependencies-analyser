@@ -18,10 +18,10 @@
     </licenses>
     <developers>
         <developer>
-            <name>Andrei Istomin</name>
-            <email>andrej.istomin.ikeen@gmail.com</email>
-            <organization>Andrei Istomin</organization>
-            <organizationUrl>http://aistomin.github.io/</organizationUrl>
+            <name>Andrej Istomin</name>
+            <email>contact@aistomin.com</email>
+            <organization>Andrej Istomin</organization>
+            <organizationUrl>https://aistomin.com/</organizationUrl>
         </developer>
     </developers>
     <scm>
@@ -31,13 +31,9 @@
     </scm>
     <distributionManagement>
         <snapshotRepository>
-            <id>ossrh</id>
-            <url>https://oss.sonatype.org/content/repositories/snapshots</url>
+            <id>central</id>
+            <url>https://central.sonatype.com/repository/maven-snapshots/</url>
         </snapshotRepository>
-        <repository>
-            <id>ossrh</id>
-            <url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
-        </repository>
     </distributionManagement>
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -125,14 +121,13 @@
             <build>
                 <plugins>
                     <plugin>
-                        <groupId>org.sonatype.plugins</groupId>
-                        <artifactId>nexus-staging-maven-plugin</artifactId>
-                        <version>1.7.0</version>
+                        <groupId>org.sonatype.central</groupId>
+                        <artifactId>central-publishing-maven-plugin</artifactId>
+                        <version>0.7.0</version>
                         <extensions>true</extensions>
                         <configuration>
-                            <serverId>ossrh</serverId>
-                            <nexusUrl>https://oss.sonatype.org/</nexusUrl>
-                            <autoReleaseAfterClose>true</autoReleaseAfterClose>
+                            <publishingServerId>central</publishingServerId>
+                            <autoPublish>true</autoPublish>
                         </configuration>
                     </plugin>
                     <plugin>
