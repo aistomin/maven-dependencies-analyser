@@ -6,21 +6,21 @@
 [![Maven Central](https://img.shields.io/maven-central/v/com.github.aistomin/maven-dependencies-analyser)](https://central.sonatype.com/artifact/com.github.aistomin/maven-dependencies-analyser)
 [![javadoc](https://javadoc.io/badge2/com.github.aistomin/maven-dependencies-analyser/javadoc.svg)](https://javadoc.io/doc/com.github.aistomin/maven-dependencies-analyser)
 
-Maven plugin that analyses and validates that all the project dependencies are
- up-to-date.
+Maven plugin that analyses and validates whether all project dependencies are
+up to date.
 
 ## Getting Started
 
 ### System Requirements
 
- - JDK 21 or higher.
- - Apache Maven 3.8.3 or higher
- 
+- JDK 21 or higher.
+- Apache Maven 3.8.3 or higher.
+
 ### Validate Project Dependencies
 
 Add the following configuration to your project's `pom.xml`:
 
-```maven
+```xml
 <build>
     <plugins>
         <!-- other plugins are there -->
@@ -44,26 +44,27 @@ Add the following configuration to your project's `pom.xml`:
 </build>
 ```
 
-With this configuration the Maven build will fail in case any of the 
-dependencies of your project is out-of-date. If you do not want the build to
- fail, but rather just to show the warning, please change the ```level``` 
- configuration value from ```ERROR``` to ```WARNING```.
+With this configuration, the Maven build will fail if any of the 
+dependencies of your project are out of date. If you do not want the build to
+fail, but rather just show a warning, please change the `level` 
+configuration value from `ERROR` to `WARNING`.
 
-Using the ```enabled``` configuration you may easily turn the complete 
-dependencies validation off. Then the configuration section will look like:
-```
+With the `enabled` configuration, you can easily turn the dependencies 
+validation off. The configuration section would then look like this:
+
+```xml
 <configuration>
     <level>ERROR</level>
     <enabled>false</enabled>
 </configuration>
 ```
-  
-For the further information, please check out our 
+
+For further information, please check out our 
 [example project](https://github.com/aistomin/maven-dependencies-analyser-examples).
 
 Please keep in mind that currently we validate only dependencies that are 
 published in the [Maven Central Repository](https://search.maven.org/).
-  
+
 ## Licence
 
 The project is licensed under the terms of the 
@@ -72,9 +73,9 @@ The project is licensed under the terms of the
 ## Have You Found a Bug? Do You Have Any Suggestions?
 
 Although we try our best, we're not robots and bugs are possible :) Also we're
-always happy to hear some suggestions, ideas and thoughts from you. Don't
- hesitate to [create an issue](https://github.com/aistomin/maven-dependencies-analyser/issues/new). 
-It will help us to make our project better. Thank you in advance!!!
+always happy to hear suggestions, ideas, and thoughts from you. Don't
+hesitate to [create an issue](https://github.com/aistomin/maven-dependencies-analyser/issues/new). 
+It will help us make our project better. Thank you in advance!
 
 ## How to Contribute?
 
