@@ -59,7 +59,16 @@ validation off. The configuration section would then look like this:
 </configuration>
 ```
 
-For further information, please check out our 
+### Run the Plugin Manually
+
+If you want to run the plugin explicitly (instead of binding it to a phase),
+execute the following command in your project:
+
+```bash
+mvn maven-dependencies-analyser:check
+```
+
+For further information, please check out our
 [example project](https://github.com/aistomin/maven-dependencies-analyser-examples).
 
 Please keep in mind that currently we validate only dependencies that are 
