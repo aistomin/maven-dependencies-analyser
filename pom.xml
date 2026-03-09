@@ -234,7 +234,7 @@
                 <artifactId>maven-plugin-plugin</artifactId>
                 <version>${mavenVersion}</version>
                 <configuration>
-                    <goalPrefix>rat</goalPrefix>
+                    <goalPrefix>maven-dependencies-analyser</goalPrefix>
                 </configuration>
             </plugin>
             <plugin>
