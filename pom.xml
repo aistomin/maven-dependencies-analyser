@@ -39,7 +39,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.source>21</maven.compiler.source>
         <linkXRef>false</linkXRef>
-        <junitVersion>6.1.0-M1</junitVersion>
+        <junitVersion>6.1.0-RC1</junitVersion>
         <mvnApiVersion>4.0.0-rc-5</mvnApiVersion>
         <mavenVersion>3.15.2</mavenVersion>
         <slf4j-api.version>2.1.0-alpha1</slf4j-api.version>
