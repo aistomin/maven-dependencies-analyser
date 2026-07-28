@@ -55,7 +55,7 @@ public final class MdaMojo extends AbstractMojo {
     private FailureLevel level;
 
     /**
-     * Is validation enabled?
+     * Whether the validation is enabled.
      */
     @Parameter(property = "enabled", defaultValue = "true")
     private Boolean enabled;
