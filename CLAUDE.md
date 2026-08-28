@@ -67,7 +67,8 @@ Notes on the build:
 - Tests are JUnit 5 (Jupiter). Both the tests and the dogfooding step query the real Maven
   Central over the network, so the full build needs network access.
   `src/test/resources/error_pom.xml` intentionally contains outdated dependencies;
-  `sample_pom.xml` and `parentless_pom.xml` cover the other parsing cases.
+  `sample_pom.xml`, `parentless_pom.xml`, and `sections_pom.xml` cover the other parsing
+  cases.
 
 ## Architecture
 
@@ -76,7 +77,9 @@ four files:
 
 - **`MdaMojo`** — the plugin entry point (`@Mojo(name = "check", defaultPhase = VERIFY)`).
   Parameters: `level` (`ERROR` fails the build, `WARNING` only logs — see `FailureLevel`),
-  `enabled`, and `pom` (path to the pom file, used by tests to point at fixture poms). It
+  `enabled`, `skip` (wins over both, meant for the command line), and `pom` (path to the
+  pom file, used by tests to point at fixture poms); all of them are settable as
+  `-Dmda.<parameter>`. It
   collects parent + dependencies + plugins, asks the repo for newer versions of each, and
   routes every failure through `throwError()`, which either throws `MojoFailureException` or
   logs, depending on `level`.
@@ -84,22 +87,39 @@ four files:
   `plugins()`).
 - **`MdaPom`** — the pom.xml implementation, parses with `MavenXpp3Reader` and resolves
   `${property}` version references against the pom's `<properties>`. Entries without a
-  resolvable version are silently filtered out.
+  resolvable version are filtered out: a missing version is logged at `debug` (it is
+  inherited from the parent), an unresolvable `${property}` at `warn`.
 - Version lookup against Maven Central is delegated to the author's separate library
   `com.github.aistomin:maven-browser` (`MavenCentral`, `MvnArtifactVersion`, etc.) — changes
   to the actual "what's newer" logic usually belong there, not here.
 
 ## Releasing
 
-The repo pom stays at `1.0-SNAPSHOT`. Releases go through the manual `Release to Maven
-Central` GitHub Actions workflow (`.github/workflows/release.yml`, workflow_dispatch, run
-from `master`). It currently takes a single `version` input, sets the version via
-`versions:set`, and runs `mvn clean deploy -P release` (sources/javadoc jars, GPG signing,
-central-publishing-maven-plugin). Everything else — closing the release ticket and the
-milestone, creating the GitHub release — is manual for now: #463 will bring the fully
-automated, ticket-driven release process used in
-[maven-browser](https://github.com/aistomin/maven-browser). Don't bump the version in the
-pom by hand and don't run the release profile locally.
+The pom on `master` always carries the next version as `X.Y-SNAPSHOT`, matching the
+milestone in development. Releases go through the manual `Release to Maven Central` GitHub
+Actions workflow (`.github/workflows/release.yml`, workflow_dispatch, run from `master` —
+dry runs included). It takes two issue numbers as inputs — the "Release version X" ticket
+of the milestone being released and the one of the next milestone — plus an optional
+`dry-run` flag. Versions are derived from the tickets' milestone titles (`Version X.Y`).
+The workflow does everything end-to-end: validates the tickets, the milestone, the tag,
+and that the pom is at `<version>-SNAPSHOT`; bumps the version in `pom.xml` and
+`README.md`; deploys to Maven Central via the `release` Maven profile (sources/javadoc
+jars, GPG signing, central-publishing-maven-plugin); pushes the release commit and a
+follow-up next-`SNAPSHOT` commit to `master`; creates the `v<version>` GitHub release with
+generated notes; and closes the release ticket and the milestone. No version branch is
+created (the old `4.0`-style branches are legacy). Don't bump the version in the pom by
+hand and don't run the release profile locally.
+
+The self-referencing `com.github.aistomin:maven-dependencies-analyser` plugin in
+`pom.xml` (the dogfooding step) is deliberately **not** bumped by the release: the version
+being released does not exist in Maven Central while the release build runs. Dependabot
+opens that bump as a `build(deps)` PR once the new version is published.
+
+The workflow is not atomic — the deploy to Maven Central is irreversible and happens
+before the pushes. If a run dies after the deploy step, finish the release by hand (push
+the release commit, create the `v<version>` release, bump the pom to the next
+`X.Y-SNAPSHOT`, close the ticket and the milestone) and do **not** re-dispatch the
+workflow: Maven Central rejects republishing a version.
 
 ## Git conventions
 
@@ -173,10 +193,6 @@ plus release issue) and get approval before creating anything. On the go:
 
    Please read [how to contribute](https://github.com/aistomin/maven-dependencies-analyser?tab=readme-ov-file#how-to-contribute)
    ```
-
-   Until #463 lands, the workflow does not have the `release-ticket`/`next-release-ticket`
-   inputs yet: release the version via the current workflow's `version` input instead, then
-   close the release ticket and the milestone manually.
 
 Only when the user explicitly asks for it, migrate issues from the milestone that is
 about to be released: move all still-open issues of the old milestone to the new one,
