@@ -12,3 +12,10 @@ updates:
     commit-message:
       prefix: "build"
       include: "scope"
+  - package-ecosystem: "github-actions"
+    directory: "/" # Dependabot always scans .github/workflows from the root
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: "ci"
+      include: "scope"
