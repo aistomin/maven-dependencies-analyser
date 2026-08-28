@@ -5,7 +5,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.github.aistomin</groupId>
     <artifactId>maven-dependencies-analyser</artifactId>
-    <version>5.0</version>
+    <version>5.1-SNAPSHOT</version>
     <packaging>maven-plugin</packaging>
     <name>Maven Dependencies Analyser</name>
     <description>Maven plugin that analyses and validates Maven dependencies of a project.</description>
