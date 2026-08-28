@@ -59,6 +59,32 @@ validation off. The configuration section would then look like this:
 </configuration>
 ```
 
+### Skip the Analysis
+
+Every artifact is looked up in Maven Central, so on a big project, or on a slow
+connection, the analysis costs a noticeable amount of build time. If you do not
+need it in a particular build, for example in CI, skip it from the command
+line:
+
+```bash
+mvn verify -Dmda.skip=true
+```
+
+The same flag can be set in the plugin's configuration:
+
+```xml
+<configuration>
+    <level>ERROR</level>
+    <skip>true</skip>
+</configuration>
+```
+
+`skip` wins over both `level` and `enabled`: when it is set, nothing is
+analysed and the build never fails because of an outdated dependency.
+
+All the plugin's parameters can be set from the command line as
+`mda.<parameter>`, e.g. `-Dmda.level=ERROR` or `-Dmda.enabled=false`.
+
 ### What Is Analysed
 
 The plugin reads your `pom.xml` and checks the versions declared in:
