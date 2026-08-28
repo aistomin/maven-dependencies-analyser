@@ -53,19 +53,27 @@ public final class MdaMojo extends AbstractMojo {
     /**
      * Failure level.
      */
-    @Parameter(property = "level", defaultValue = "WARNING")
+    @Parameter(property = "mda.level", defaultValue = "WARNING")
     private FailureLevel level;
 
     /**
      * Whether the validation is enabled.
      */
-    @Parameter(property = "enabled", defaultValue = "true")
+    @Parameter(property = "mda.enabled", defaultValue = "true")
     private Boolean enabled;
+
+    /**
+     * Whether the validation must be skipped. Unlike {@link MdaMojo#enabled}
+     * it is meant to be set from the command line, e.g. when we do not want
+     * to spend the time on the analysis in the CI build.
+     */
+    @Parameter(property = "mda.skip", defaultValue = "false")
+    private Boolean skip = false;
 
     /**
      * The path to the pom.xml file.
      */
-    @Parameter(property = "path", defaultValue = "pom.xml")
+    @Parameter(property = "mda.pom", defaultValue = "pom.xml")
     private String pom;
 
     /**
@@ -102,7 +110,13 @@ public final class MdaMojo extends AbstractMojo {
 
     @Override
     public void execute() throws MojoFailureException {
-        if (this.enabled) {
+        if (this.skip || !this.enabled) {
+            final String line =
+                "***********************************************";
+            this.logger.warn(line);
+            this.logger.warn("Maven dependencies analysis is switched off.");
+            this.logger.warn(line);
+        } else {
             final var outdated =
                 new HashMap<MvnArtifactVersion, List<MvnArtifactVersion>>();
             try {
@@ -149,12 +163,6 @@ public final class MdaMojo extends AbstractMojo {
                     String.format("Error occurred: %s", error.getMessage())
                 );
             }
-        } else {
-            final String line =
-                "***********************************************";
-            this.logger.warn(line);
-            this.logger.warn("Maven dependencies analysis is switched off.");
-            this.logger.warn(line);
         }
     }
 
@@ -174,6 +182,15 @@ public final class MdaMojo extends AbstractMojo {
      */
     public void setEnabled(final Boolean active) {
         this.enabled = active;
+    }
+
+    /**
+     * Skip the validation.
+     *
+     * @param ignore Must the validation be skipped?
+     */
+    public void setSkip(final Boolean ignore) {
+        this.skip = ignore;
     }
 
     /**

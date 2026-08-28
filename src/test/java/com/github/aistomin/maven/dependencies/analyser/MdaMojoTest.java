@@ -69,6 +69,25 @@ final class MdaMojoTest {
     }
 
     /**
+     * Check that the validation can be skipped even if the failure level is
+     * set to ERROR and the pom.xml contains outdated dependencies.
+     *
+     * @throws Exception If something goes wrong.
+     */
+    @Test
+    void testSkipped() throws Exception {
+        final MdaMojo mojo = new MdaMojo();
+        mojo.setLevel(FailureLevel.ERROR);
+        mojo.setEnabled(true);
+        mojo.setSkip(true);
+        mojo.setPom(
+            Thread.currentThread().getContextClassLoader()
+                .getResource(MdaMojoTest.ERROR_POM_XML).getPath()
+        );
+        mojo.execute();
+    }
+
+    /**
      * Check that plugin can be successfully disabled.
      *
      * @throws Exception If something goes wrong.
