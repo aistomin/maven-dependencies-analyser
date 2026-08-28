@@ -96,7 +96,8 @@ The plugin reads your `pom.xml` and checks the versions declared in:
 - `<build><extensions>`;
 - `<reporting><plugins>`;
 - all of the above inside every `<profile>`, no matter whether the profile is
-  active or not.
+  active or not, except `<extensions>`, which Maven allows only in the
+  top-level `<build>`.
 
 An artifact that is declared more than once is checked only once.
 
@@ -113,9 +114,6 @@ execute the following command in your project:
 ```bash
 mvn maven-dependencies-analyser:check
 ```
-
-For further information, please check out our
-[example project](https://github.com/aistomin/maven-dependencies-analyser-examples).
 
 Please keep in mind that currently we validate only dependencies that are 
 published in the [Maven Central Repository](https://search.maven.org/).
