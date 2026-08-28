@@ -37,7 +37,10 @@ public interface MdaBuildFile {
     MvnArtifactVersion parent() throws IOException, XmlPullParserException;
 
     /**
-     * Extract all the project's dependencies.
+     * Extract all the project's dependencies: the ones which are declared in
+     * the dependencies and dependency management sections, in the profiles,
+     * and the ones which belong to the plugins. The dependencies which are
+     * declared more than once are returned only once.
      *
      * @return The list of the dependencies.
      * @throws IOException If the file is not found or corrupted.
@@ -47,7 +50,10 @@ public interface MdaBuildFile {
         throws IOException, XmlPullParserException;
 
     /**
-     * Extract all the project's plugins.
+     * Extract all the project's plugins: the ones which are declared in the
+     * build, plugin management, reporting and extensions sections, including
+     * the same sections of the profiles. The plugins which are declared more
+     * than once are returned only once.
      *
      * @return The list of the plugins.
      * @throws IOException If the file is not found or corrupted.

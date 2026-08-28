@@ -59,6 +59,26 @@ validation off. The configuration section would then look like this:
 </configuration>
 ```
 
+### What Is Analysed
+
+The plugin reads your `pom.xml` and checks the versions declared in:
+
+- `<parent>`;
+- `<dependencies>` and `<dependencyManagement>`;
+- `<build><plugins>` and `<build><pluginManagement>`, including the
+  `<dependencies>` of every plugin;
+- `<build><extensions>`;
+- `<reporting><plugins>`;
+- all of the above inside every `<profile>`, no matter whether the profile is
+  active or not.
+
+An artifact that is declared more than once is checked only once.
+
+Artifacts without a version are skipped, because their version is inherited
+from a parent pom. If a version is declared as a `${property}` which can not be
+resolved from the pom's own `<properties>`, the artifact is skipped as well and
+a warning is logged, so that you can see that the analysis was not complete.
+
 ### Run the Plugin Manually
 
 If you want to run the plugin explicitly (instead of binding it to a phase),

@@ -26,12 +26,24 @@ import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 import org.apache.maven.model.Build;
+import org.apache.maven.model.BuildBase;
+import org.apache.maven.model.Dependency;
+import org.apache.maven.model.DependencyManagement;
+import org.apache.maven.model.Extension;
 import org.apache.maven.model.Model;
 import org.apache.maven.model.Parent;
+import org.apache.maven.model.Plugin;
+import org.apache.maven.model.PluginManagement;
+import org.apache.maven.model.Profile;
+import org.apache.maven.model.ReportPlugin;
+import org.apache.maven.model.Reporting;
 import org.apache.maven.model.io.xpp3.MavenXpp3Reader;
 import org.codehaus.plexus.util.xml.pull.XmlPullParserException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * The representation of pom.xml file.
@@ -39,6 +51,11 @@ import org.codehaus.plexus.util.xml.pull.XmlPullParserException;
  * @since 0.1
  */
 public final class MdaPom implements MdaBuildFile {
+
+    /**
+     * Logger.
+     */
+    private final Logger logger = LoggerFactory.getLogger(getClass());
 
     /**
      * The pom.xml file.
@@ -68,41 +85,42 @@ public final class MdaPom implements MdaBuildFile {
         throws IOException, XmlPullParserException {
         final Model model = this.model();
         final Parent parent = model.getParent();
-        if (parent != null) {
-            return new MavenArtifactVersion(
-                new MavenArtifact(
-                    new MavenGroup(parent.getGroupId()),
-                    parent.getArtifactId()
-                ),
-                dependencyVersion(model, parent.getVersion()),
-                MvnPackagingType.JAR,
-                System.currentTimeMillis()
-            );
+        final MvnArtifactVersion result;
+        if (parent == null) {
+            result = null;
         } else {
-            return null;
+            result = this.artifact(
+                model, parent.getGroupId(), parent.getArtifactId(),
+                parent.getVersion(), MvnPackagingType.JAR
+            );
         }
+        return result;
     }
 
     @Override
     public List<MvnArtifactVersion> dependencies()
         throws IOException, XmlPullParserException {
         final Model model = this.model();
-        return model
-            .getDependencies()
-            .stream()
+        final List<Dependency> found =
+            new ArrayList<>(model.getDependencies());
+        found.addAll(managed(model.getDependencyManagement()));
+        for (final Profile profile : model.getProfiles()) {
+            found.addAll(profile.getDependencies());
+            found.addAll(managed(profile.getDependencyManagement()));
+        }
+        for (final Plugin plugin : declared(model)) {
+            found.addAll(plugin.getDependencies());
+        }
+        return found.stream()
             .map(
-                dependency ->
-                    new MavenArtifactVersion(
-                        new MavenArtifact(
-                            new MavenGroup(dependency.getGroupId()),
-                            dependency.getArtifactId()
-                        ),
-                        dependencyVersion(model, dependency.getVersion()),
-                        find(dependency.getType()),
-                        System.currentTimeMillis()
-                    )
+                dependency -> this.artifact(
+                    model, dependency.getGroupId(),
+                    dependency.getArtifactId(), dependency.getVersion(),
+                    find(dependency.getType())
+                )
             )
-            .filter(version -> version.name() != null)
+            .filter(Objects::nonNull)
+            .distinct()
             .collect(Collectors.toList());
     }
 
@@ -110,23 +128,35 @@ public final class MdaPom implements MdaBuildFile {
     public List<MvnArtifactVersion> plugins()
         throws IOException, XmlPullParserException {
         final Model model = this.model();
-        final Build build = model.getBuild();
-        return build != null ? build.getPlugins()
-            .stream()
-            .map(
-                plugin ->
-                    new MavenArtifactVersion(
-                        new MavenArtifact(
-                            new MavenGroup(plugin.getGroupId()),
-                            plugin.getArtifactId()
-                        ),
-                        dependencyVersion(model, plugin.getVersion()),
-                        MvnPackagingType.JAR,
-                        System.currentTimeMillis()
-                    )
-            )
-            .filter(version -> version.name() != null)
-            .collect(Collectors.toList()) : new ArrayList<>();
+        final List<MvnArtifactVersion> found = new ArrayList<>(0);
+        for (final Plugin plugin : declared(model)) {
+            found.add(
+                this.artifact(
+                    model, plugin.getGroupId(), plugin.getArtifactId(),
+                    plugin.getVersion(), MvnPackagingType.MAVEN_PLUGIN
+                )
+            );
+        }
+        for (final ReportPlugin plugin : reports(model)) {
+            found.add(
+                this.artifact(
+                    model, plugin.getGroupId(), plugin.getArtifactId(),
+                    plugin.getVersion(), MvnPackagingType.MAVEN_PLUGIN
+                )
+            );
+        }
+        for (final Extension extension : extensions(model)) {
+            found.add(
+                this.artifact(
+                    model, extension.getGroupId(), extension.getArtifactId(),
+                    extension.getVersion(), MvnPackagingType.JAR
+                )
+            );
+        }
+        return found.stream()
+            .filter(Objects::nonNull)
+            .distinct()
+            .collect(Collectors.toList());
     }
 
     /**
@@ -139,6 +169,145 @@ public final class MdaPom implements MdaBuildFile {
     private Model model() throws IOException, XmlPullParserException {
         return new MavenXpp3Reader()
             .read(Files.newInputStream(this.file.toPath()));
+    }
+
+    /**
+     * Create the artifact's version. The artifacts which versions can not be
+     * resolved are reported and skipped.
+     *
+     * @param model The pom.xml model.
+     * @param group The artifact's group.
+     * @param artifact The artifact's identifier.
+     * @param version The version as it is written in the pom.xml.
+     * @param type The artifact's packaging type.
+     * @return The artifact's version or NULL if it can not be resolved.
+     */
+    private MvnArtifactVersion artifact(
+        final Model model, final String group, final String artifact,
+        final String version, final MvnPackagingType type
+    ) {
+        final String resolved = dependencyVersion(model, version);
+        final MvnArtifactVersion result;
+        if (resolved == null) {
+            result = null;
+            if (version == null) {
+                this.logger.debug(
+                    "{}:{} has no version. It is inherited, we skip it.",
+                    group, artifact
+                );
+            } else {
+                this.logger.warn(
+                    "Can not analyse {}:{}. Version {} can not be resolved.",
+                    group, artifact, version
+                );
+            }
+        } else {
+            result = new MavenArtifactVersion(
+                new MavenArtifact(new MavenGroup(group), artifact),
+                resolved, type, System.currentTimeMillis()
+            );
+        }
+        return result;
+    }
+
+    /**
+     * All the plugins which are declared in the build sections of the pom.xml.
+     * The build sections of the profiles are taken into account too.
+     *
+     * @param model The pom.xml model.
+     * @return The list of the plugins.
+     */
+    private static List<Plugin> declared(final Model model) {
+        final List<Plugin> result = new ArrayList<>(built(model.getBuild()));
+        for (final Profile profile : model.getProfiles()) {
+            result.addAll(built(profile.getBuild()));
+        }
+        return result;
+    }
+
+    /**
+     * The plugins of the build section: both the plugins themselves and the
+     * ones which are declared in the plugin management section.
+     *
+     * @param build The build section. May be NULL.
+     * @return The list of the plugins.
+     */
+    private static List<Plugin> built(final BuildBase build) {
+        final List<Plugin> result = new ArrayList<>(0);
+        if (build != null) {
+            result.addAll(build.getPlugins());
+            final PluginManagement management = build.getPluginManagement();
+            if (management != null) {
+                result.addAll(management.getPlugins());
+            }
+        }
+        return result;
+    }
+
+    /**
+     * All the reporting plugins of the pom.xml and of its profiles.
+     *
+     * @param model The pom.xml model.
+     * @return The list of the reporting plugins.
+     */
+    private static List<ReportPlugin> reports(final Model model) {
+        final List<ReportPlugin> result =
+            new ArrayList<>(reported(model.getReporting()));
+        for (final Profile profile : model.getProfiles()) {
+            result.addAll(reported(profile.getReporting()));
+        }
+        return result;
+    }
+
+    /**
+     * The plugins of the reporting section.
+     *
+     * @param reporting The reporting section. May be NULL.
+     * @return The list of the reporting plugins.
+     */
+    private static List<ReportPlugin> reported(final Reporting reporting) {
+        final List<ReportPlugin> result;
+        if (reporting == null) {
+            result = new ArrayList<>(0);
+        } else {
+            result = reporting.getPlugins();
+        }
+        return result;
+    }
+
+    /**
+     * The extensions of the build section.
+     *
+     * @param model The pom.xml model.
+     * @return The list of the extensions.
+     */
+    private static List<Extension> extensions(final Model model) {
+        final List<Extension> result;
+        final Build build = model.getBuild();
+        if (build == null) {
+            result = new ArrayList<>(0);
+        } else {
+            result = build.getExtensions();
+        }
+        return result;
+    }
+
+    /**
+     * The dependencies of the dependency management section.
+     *
+     * @param management The dependency management section. May be NULL.
+     * @return The list of the dependencies.
+     */
+    private static List<Dependency> managed(
+        final DependencyManagement management
+    ) {
+        final List<Dependency> result;
+        if (management == null) {
+            result = new ArrayList<>(0);
+        } else {
+            result = management.getDependencies();
+        }
+        return result;
     }
 
     /**
