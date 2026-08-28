@@ -51,6 +51,15 @@ final class MdaPomTest {
         .getFile();
 
     /**
+     * The pom file which declares versions in all the possible sections.
+     */
+    private final String sections = Thread
+        .currentThread()
+        .getContextClassLoader()
+        .getResource("sections_pom.xml")
+        .getFile();
+
+    /**
      * Check that we can correctly read the dependencies from the pom.xml.
      *
      * @throws Exception If something goes wrong.
@@ -141,6 +150,85 @@ final class MdaPomTest {
     }
 
     /**
+     * Check that we read the dependencies from all the pom.xml sections: the
+     * dependency management, the profiles and the plugins.
+     *
+     * @throws Exception If something goes wrong.
+     */
+    @Test
+    void testDependenciesFromAllSections() throws Exception {
+        final String slf4j = "org.slf4j";
+        final List<MvnArtifactVersion> expected = Arrays.asList(
+            artifact("com.github.aistomin", "maven-browser", "5.0"),
+            artifact(slf4j, "slf4j-simple", "1.7.36"),
+            artifact(slf4j, "slf4j-api", "2.0.9"),
+            artifact("org.junit.jupiter", "junit-jupiter-api", "5.10.1"),
+            artifact("org.mockito", "mockito-core", "5.8.0"),
+            artifact("com.puppycrawl.tools", "checkstyle", "10.12.5")
+        );
+        final List<MvnArtifactVersion> dependencies =
+            new MdaPom(this.sections).dependencies();
+        Assertions.assertEquals(expected.size(), dependencies.size());
+        for (final MvnArtifactVersion dependency : dependencies) {
+            Assertions.assertTrue(
+                expected.stream().anyMatch(exp -> exp.equals(dependency))
+            );
+        }
+    }
+
+    /**
+     * Check that we read the plugins from all the pom.xml sections: the
+     * plugin management, the profiles, the reporting and the extensions.
+     *
+     * @throws Exception If something goes wrong.
+     */
+    @Test
+    void testPluginsFromAllSections() throws Exception {
+        final String plugins = "org.apache.maven.plugins";
+        final List<MvnArtifactVersion> expected = Arrays.asList(
+            artifact(plugins, "maven-checkstyle-plugin", "3.3.1"),
+            artifact(plugins, "maven-clean-plugin", "3.3.2"),
+            artifact(plugins, "maven-gpg-plugin", "3.1.0"),
+            artifact(plugins, "maven-source-plugin", "3.3.0"),
+            artifact(plugins, "maven-project-info-reports-plugin", "3.5.0"),
+            artifact(plugins, "maven-surefire-report-plugin", "3.2.3"),
+            artifact("org.apache.maven.wagon", "wagon-ssh", "3.5.3"),
+            artifact(
+                "com.github.aistomin", "maven-dependencies-analyser", "4.2"
+            )
+        );
+        final List<MvnArtifactVersion> found =
+            new MdaPom(this.sections).plugins();
+        Assertions.assertEquals(expected.size(), found.size());
+        for (final MvnArtifactVersion plugin : found) {
+            Assertions.assertTrue(
+                expected.stream().anyMatch(exp -> exp.equals(plugin))
+            );
+        }
+    }
+
+    /**
+     * Check that the artifact which is declared in several sections is
+     * returned only once.
+     *
+     * @throws Exception If something goes wrong.
+     */
+    @Test
+    void testDuplicatesAreRemoved() throws Exception {
+        final MvnArtifactVersion duplicate = artifact(
+            "com.github.aistomin", "maven-dependencies-analyser", "4.2"
+        );
+        Assertions.assertEquals(
+            1,
+            new MdaPom(this.sections)
+                .plugins()
+                .stream()
+                .filter(duplicate::equals)
+                .count()
+        );
+    }
+
+    /**
      * Check that we can correctly read the parent artifact from the pom.xml.
      *
      * @throws Exception If something goes wrong.
@@ -153,6 +241,23 @@ final class MdaPomTest {
         );
         Assertions.assertNull(
             new MdaPom(this.parentlessSample).parent()
+        );
+    }
+
+    /**
+     * Create the expected artifact's version.
+     *
+     * @param group The artifact's group.
+     * @param artifact The artifact's identifier.
+     * @param version The artifact's version.
+     * @return The artifact's version.
+     */
+    private static MvnArtifactVersion artifact(
+        final String group, final String artifact, final String version
+    ) {
+        return new MavenArtifactVersion(
+            new MavenArtifact(new MavenGroup(group), artifact),
+            version, MvnPackagingType.JAR, System.currentTimeMillis()
         );
     }
 }
