@@ -158,19 +158,6 @@
                     </plugin>
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-javadoc-plugin</artifactId>
-                        <version>3.12.0</version>
-                        <executions>
-                            <execution>
-                                <id>attach-javadocs</id>
-                                <goals>
-                                    <goal>jar</goal>
-                                </goals>
-                            </execution>
-                        </executions>
-                    </plugin>
-                    <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-gpg-plugin</artifactId>
                         <version>3.2.8</version>
                         <executions>
@@ -429,6 +416,49 @@
                         <goals>
                             <goal>check</goal>
                         </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-javadoc-plugin</artifactId>
+                <version>3.12.0</version>
+                <configuration>
+                    <source>21</source>
+                    <!-- Check the content of the Javadoc comments, not only
+                         their presence: broken references, tags which do not
+                         match the signature, invalid HTML. Warnings fail the
+                         build too, otherwise the warning-level findings would
+                         pile up unnoticed. -->
+                    <doclint>all</doclint>
+                    <failOnWarnings>true</failOnWarnings>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>attach-javadocs</id>
+                        <goals>
+                            <goal>jar</goal>
+                        </goals>
+                    </execution>
+                    <!--
+                        Checkstyle holds the test sources to the same Javadoc
+                        bar as the main ones, so their comments are
+                        content-checked too. This is the report goal and not
+                        test-jar on purpose: it must not attach a second
+                        javadoc artifact to the release.
+                    -->
+                    <execution>
+                        <id>check-test-javadocs</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>test-javadoc</goal>
+                        </goals>
+                        <configuration>
+                            <!-- The test classes are package-private, as JUnit
+                                 5 wants them. Without this javadoc sees no
+                                 documentable class at all and fails. -->
+                            <show>private</show>
+                        </configuration>
                     </execution>
                 </executions>
             </plugin>

@@ -60,6 +60,12 @@ final class MdaPomTest {
         .getFile();
 
     /**
+     * Ctor.
+     */
+    MdaPomTest() {
+    }
+
+    /**
      * Check that we can correctly read the dependencies from the pom.xml.
      *
      * @throws Exception If something goes wrong.

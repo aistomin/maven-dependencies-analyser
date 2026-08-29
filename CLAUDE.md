@@ -45,7 +45,7 @@ plugins have newer versions in Maven Central. It is published to Maven Central a
 
 ```bash
 # Full build — run this before submitting any PR (per README contribution guidelines)
-mvn clean install package javadoc:javadoc
+mvn clean install
 
 # Tests only
 mvn test
@@ -96,6 +96,15 @@ Notes on the build:
   bumped, and no automation to bump it. It carries no legal weight (copyright arises without
   any notice under the Berne Convention), Apache's own boilerplate uses a single year, and a
   constant notice is one that can never start failing on its own.
+- Javadoc is generated on **every** build, not only during a release: `maven-javadoc-plugin`
+  sits in the base `<build>` and runs at `package` with `doclint=all` and
+  `failOnWarnings=true`, over the main sources (`jar`, which also attaches the
+  `-javadoc.jar` the release publishes) and the test sources (`test-javadoc`, the report
+  goal — `test-jar` would attach a second javadoc artifact to the release). Checkstyle
+  checks that the Javadoc *exists*, doclint checks that it is *correct*: broken `{@link}`s,
+  `@param` tags that do not match the signature, invalid HTML. That is why the build command
+  is a plain `mvn clean install` — there is nothing left for a trailing `javadoc:javadoc`
+  to catch.
 - JaCoCo enforces **80% line coverage per package** (`jacoco:check`); new code needs tests.
 - The plugin runs itself on this repo during `verify` (dogfooding, at `WARNING` level).
 - Tests are JUnit 5 (Jupiter). Both the tests and the dogfooding step query the real Maven
@@ -137,8 +146,9 @@ of the milestone being released and the one of the next milestone — plus an op
 `dry-run` flag. Versions are derived from the tickets' milestone titles (`Version X.Y`).
 The workflow does everything end-to-end: validates the tickets, the milestone, the tag,
 and that the pom is at `<version>-SNAPSHOT`; bumps the version in `pom.xml` and
-`README.md`; deploys to Maven Central via the `release` Maven profile (sources/javadoc
-jars, GPG signing, central-publishing-maven-plugin); pushes the release commit and a
+`README.md`; deploys to Maven Central via the `release` Maven profile (sources jar, GPG
+signing, central-publishing-maven-plugin — the javadoc jar comes from the base build, so
+the profile does not declare `maven-javadoc-plugin`); pushes the release commit and a
 follow-up next-`SNAPSHOT` commit to `master`; creates the `v<version>` GitHub release with
 generated notes; and closes the release ticket and the milestone. No version branch is
 created (the old `4.0`-style branches are legacy). Don't bump the version in the pom by
@@ -276,13 +286,14 @@ to push.
    The verification command is the full Maven build:
 
    ```bash
-   mvn clean install package javadoc:javadoc
+   mvn clean install
    ```
 
    It needs JDK 21 and network access (the tests and the dogfooding step call the real
    Maven Central APIs); mention in the proposal if either is missing. Remember the build
-   gates: strict Checkstyle, PMD, and duplicate-finder at `verify`, and JaCoCo's 80% line
-   coverage per package — new code without tests fails the build.
+   gates: javadoc with `doclint=all` at `package`, strict Checkstyle, PMD, and
+   duplicate-finder at `verify`, and JaCoCo's 80% line coverage per package — new code
+   without tests fails the build.
 
    Once implemented: run the full build and report the real result.
 
