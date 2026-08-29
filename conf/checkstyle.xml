@@ -78,10 +78,16 @@
 
     <!-- Checks for Headers                                -->
     <!-- See https://checkstyle.org/config_header.html   -->
-    <!-- <module name="Header"> -->
-    <!--   <property name="headerFile" value="${checkstyle.header.file}"/> -->
-    <!--   <property name="fileExtensions" value="java"/> -->
-    <!-- </module> -->
+    <!-- The copyright year is deliberately fixed at 2019, the year of first  -->
+    <!-- publication. It is never a range and never bumped: the year carries  -->
+    <!-- no legal weight, and a constant header can never start failing with  -->
+    <!-- the passage of time. This check only fires on a new file missing the -->
+    <!-- header or on a reintroduced year.                                    -->
+    <module name="RegexpHeader">
+        <property name="fileExtensions" value="java"/>
+        <property name="header"
+                  value="^/\*$\n^ \* Copyright \(c\) 2019 Andrej Istomin$\n^ \*$\n^ \* Licensed under the Apache License, Version 2\.0 \(the &quot;License&quot;\);$\n^ \* you may not use this file except in compliance with the License\.$\n^ \* You may obtain a copy of the License at$\n^ \*$\n^ \* http://www\.apache\.org/licenses/LICENSE-2\.0$\n^ \*$\n^ \* Unless required by applicable law or agreed to in writing, software$\n^ \* distributed under the License is distributed on an &quot;AS IS&quot; BASIS,$\n^ \* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied\.$\n^ \* See the License for the specific language governing permissions and$\n^ \* limitations under the License\.$\n^ \*/$"/>
+    </module>
 
     <module name="TreeWalker">
 

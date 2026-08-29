@@ -59,9 +59,19 @@ Notes on the build:
 - There is no separate lint command: Checkstyle, PMD, duplicate-finder, and JaCoCo's coverage
   check are all bound to the `verify` phase and **fail the build** on violations.
 - Checkstyle (`conf/checkstyle.xml`) is strict: mandatory Javadoc on all methods, fields, and
-  types (including tests, with `@since` tags on types), 80-character lines, `final` method
-  parameters and local variables, naming rules, and Apache 2.0 license headers on every file.
-  Match the existing files' Javadoc/comment style exactly or the build breaks.
+  types (with `@since` tags on types), 80-character lines, `final` method parameters and
+  local variables, and naming rules. It scans both `src/main/java` and `src/test/java`
+  (`includeTestSourceDirectory` in the `maven-checkstyle-plugin` config), so tests are held
+  to exactly the same bar as production code. Match the existing files' Javadoc/comment
+  style exactly or the build breaks.
+- The Apache 2.0 license header on every `.java` file is enforced by the `RegexpHeader`
+  module, which pins all 15 lines verbatim. **The copyright line is
+  `Copyright (c) 2019 Andrej Istomin` and the year is frozen at 2019** — the year of first
+  publication. Never turn it into a range, never bump it to the current year, and never add
+  automation that does: the year carries no legal weight (copyright arises without a notice
+  at all under the Berne Convention), Apache's own boilerplate uses a single year, and a
+  constant header is one that can never start failing on its own. Changing the year breaks
+  the build. `LICENSE` carries the same notice and is kept in sync by hand.
 - JaCoCo enforces **80% line coverage per package** (`jacoco:check`); new code needs tests.
 - The plugin runs itself on this repo during `verify` (dogfooding, at `WARNING` level).
 - Tests are JUnit 5 (Jupiter). Both the tests and the dogfooding step query the real Maven
