@@ -32,6 +32,12 @@ final class MdaMojoTest {
     private static final String ERROR_POM_XML = "error_pom.xml";
 
     /**
+     * Ctor.
+     */
+    MdaMojoTest() {
+    }
+
+    /**
      * Check that Mojo file can be created with default ctor.
      */
     @Test

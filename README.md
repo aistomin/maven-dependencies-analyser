@@ -140,7 +140,7 @@ branch, if they look correct. To avoid frustration, before sending us your pull
 request please run the following command and make sure there are no errors:
 
 ```
-$ mvn clean install package javadoc:javadoc
+$ mvn clean install
 ```
 
 Keep in mind our [system requirements](#system-requirements).
