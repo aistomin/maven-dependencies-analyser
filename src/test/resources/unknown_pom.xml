@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    A pom.xml which mixes the artifacts that Maven Central does not know with
+    an outdated one which it does know. The unknown artifacts fail the lookup,
+    the known one must still be reported: one artifact which can not be
+    analysed may not stop the analysis of the others.
+
+    The unknown artifacts live in the com.github.aistomin group on purpose.
+    That namespace belongs to this project's author, so these coordinates can
+    not be taken by somebody else, and the fixture can not silently start
+    resolving one day.
+-->
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>com.github.aistomin</groupId>
+    <artifactId>maven-dependencies-analyser</artifactId>
+    <version>1.0-SNAPSHOT</version>
+    <packaging>jar</packaging>
+    <name>Maven Dependencies Analyser</name>
+    <description>A pom.xml with the artifacts which can not be analysed.</description>
+    <url>https://github.com/aistomin/maven-dependencies-analyser</url>
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    </properties>
+    <dependencies>
+        <dependency>
+            <groupId>com.github.aistomin</groupId>
+            <artifactId>maven-browser</artifactId>
+            <version>1.0</version>
+        </dependency>
+        <dependency>
+            <groupId>com.github.aistomin</groupId>
+            <artifactId>no-such-artifact-alpha</artifactId>
+            <version>1.0</version>
+        </dependency>
+        <dependency>
+            <groupId>com.github.aistomin</groupId>
+            <artifactId>no-such-artifact-beta</artifactId>
+            <version>2.0</version>
+        </dependency>
+    </dependencies>
+</project>

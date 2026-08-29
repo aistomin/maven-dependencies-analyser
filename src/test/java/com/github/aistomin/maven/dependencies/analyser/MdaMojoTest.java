@@ -15,6 +15,11 @@
  */
 package com.github.aistomin.maven.dependencies.analyser;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.stream.Collectors;
 import org.apache.maven.plugin.MojoFailureException;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -30,6 +35,12 @@ final class MdaMojoTest {
      * The name of the pom file with outdated dependencies.
      */
     private static final String ERROR_POM_XML = "error_pom.xml";
+
+    /**
+     * The name of the pom file which mixes the artifacts that Maven Central
+     * does not know with an outdated one which it does know.
+     */
+    private static final String UNKNOWN_POM_XML = "unknown_pom.xml";
 
     /**
      * Ctor.
@@ -120,5 +131,116 @@ final class MdaMojoTest {
             Thread.currentThread().getContextClassLoader()
                 .getResource("sample_pom.xml").getPath()
         ).execute();
+    }
+
+    /**
+     * Check that an artifact which can not be analysed is reported, but does
+     * not stop the analysis of the other artifacts.
+     */
+    @Test
+    void testUnanalysableArtifacts() {
+        final String msg = MdaMojoTest.report(
+            MdaMojoTest.UNKNOWN_POM_XML, null
+        );
+        Assertions.assertTrue(
+            msg.contains("Can not analyse com.github.aistomin"
+                + ":no-such-artifact-alpha:1.0."),
+            msg
+        );
+        Assertions.assertTrue(
+            msg.contains("Can not analyse com.github.aistomin"
+                + ":no-such-artifact-beta:2.0."),
+            msg
+        );
+        Assertions.assertTrue(
+            msg.contains(
+                "com.github.aistomin:maven-browser (version 1.0) has newer"
+            ),
+            msg
+        );
+    }
+
+    /**
+     * Check that the report does not depend on the order in which the
+     * parallel lookups happen to finish: it is the same on every run and on
+     * every amount of the threads, and both of its sections are ordered by
+     * the artifacts' identifiers.
+     */
+    @Test
+    void testDeterministicReport() {
+        final String first = MdaMojoTest.report(
+            MdaMojoTest.UNKNOWN_POM_XML, null
+        );
+        Assertions.assertEquals(
+            first, MdaMojoTest.report(MdaMojoTest.UNKNOWN_POM_XML, null)
+        );
+        Assertions.assertEquals(
+            first, MdaMojoTest.report(MdaMojoTest.UNKNOWN_POM_XML, 1)
+        );
+        MdaMojoTest.assertSorted(first, true);
+        MdaMojoTest.assertSorted(first, false);
+    }
+
+    /**
+     * Check that a non-positive amount of the threads fails the build even if
+     * the failure level is set to WARNING: it is a broken configuration, not
+     * an outdated dependency.
+     */
+    @Test
+    void testInvalidThreads() {
+        final MdaMojo mojo = new MdaMojo(
+            FailureLevel.WARNING,
+            Thread.currentThread().getContextClassLoader()
+                .getResource(MdaMojoTest.ERROR_POM_XML).getPath()
+        );
+        mojo.setThreads(0);
+        Assertions.assertThrows(MojoFailureException.class, mojo::execute);
+        mojo.setThreads(null);
+        Assertions.assertThrows(MojoFailureException.class, mojo::execute);
+    }
+
+    /**
+     * Check that one of the report's two sections is ordered by the
+     * artifacts' identifiers. The sections are checked apart from each other,
+     * because the report lists everything which could not be analysed before
+     * everything which is outdated.
+     *
+     * @param report The whole report.
+     * @param failures TRUE - check the lines about the artifacts which could
+     *  not be analysed. FALSE - check the lines about the outdated ones.
+     */
+    private static void assertSorted(
+        final String report, final boolean failures
+    ) {
+        final String marker = "Can not analyse ";
+        final List<String> lines = Arrays.stream(report.split("\\R"))
+            .filter(line -> line.startsWith(marker) == failures)
+            .collect(Collectors.toList());
+        Assertions.assertFalse(lines.isEmpty(), report);
+        final List<String> sorted = new ArrayList<>(lines);
+        Collections.sort(sorted);
+        Assertions.assertEquals(sorted, lines, report);
+    }
+
+    /**
+     * Run the analysis on the given pom file with the ERROR failure level and
+     * return the reported message.
+     *
+     * @param pom The name of the pom file in the test resources.
+     * @param threads The amount of the threads. NULL - use the default.
+     * @return The reported message.
+     */
+    private static String report(final String pom, final Integer threads) {
+        final MdaMojo mojo = new MdaMojo(
+            FailureLevel.ERROR,
+            Thread.currentThread().getContextClassLoader()
+                .getResource(pom).getPath()
+        );
+        if (threads != null) {
+            mojo.setThreads(threads);
+        }
+        return Assertions.assertThrows(
+            MojoFailureException.class, mojo::execute
+        ).getMessage();
     }
 }

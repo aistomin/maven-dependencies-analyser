@@ -60,12 +60,31 @@ validation off. The configuration section would then look like this:
 </configuration>
 ```
 
+### Parallel Lookups
+
+Every artifact is looked up in Maven Central over the network, and the lookups
+run in parallel. The `threads` configuration bounds how many of them are in
+flight at the same time, so that a big project stays polite to the repository
+instead of firing all of its requests at once:
+
+```xml
+<configuration>
+    <level>ERROR</level>
+    <threads>16</threads>
+</configuration>
+```
+
+It defaults to `8` and never exceeds the amount of the analysed artifacts. It
+has to be a positive number: anything else fails the build regardless of
+`level`, because a broken configuration is not the same thing as an outdated
+dependency.
+
 ### Skip the Analysis
 
-Every artifact is looked up in Maven Central, so on a big project, or on a slow
-connection, the analysis costs a noticeable amount of build time. If you do not
-need it in a particular build, for example in CI, skip it from the command
-line:
+Even in parallel, every artifact is looked up in Maven Central, so on a big
+project, or on a slow connection, the analysis still costs some build time. If
+you do not need it in a particular build, for example in CI, skip it from the
+command line:
 
 ```bash
 mvn verify -Dmda.skip=true
