@@ -105,7 +105,9 @@ Notes on the build:
   `@param` tags that do not match the signature, invalid HTML. That is why the build command
   is a plain `mvn clean install` — there is nothing left for a trailing `javadoc:javadoc`
   to catch.
-- JaCoCo enforces **80% line coverage per package** (`jacoco:check`); new code needs tests.
+- JaCoCo enforces **95% line coverage per package** (`jacoco:check`); new code needs tests.
+  The bar is set just under where coverage already sits (97.40% today) on purpose: it exists
+  to stop coverage sliding, not to define an acceptable level to sink to.
 - The plugin runs itself on this repo during `verify` (dogfooding, at `WARNING` level).
 - Tests are JUnit 5 (Jupiter). Both the tests and the dogfooding step query the real Maven
   Central over the network, so the full build needs network access.
@@ -292,7 +294,7 @@ to push.
    It needs JDK 21 and network access (the tests and the dogfooding step call the real
    Maven Central APIs); mention in the proposal if either is missing. Remember the build
    gates: javadoc with `doclint=all` at `package`, strict Checkstyle, PMD, and
-   duplicate-finder at `verify`, and JaCoCo's 80% line coverage per package — new code
+   duplicate-finder at `verify`, and JaCoCo's 95% line coverage per package — new code
    without tests fails the build.
 
    Once implemented: run the full build and report the real result.
