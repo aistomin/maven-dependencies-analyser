@@ -5,6 +5,7 @@
 [![codecov](https://codecov.io/gh/aistomin/maven-dependencies-analyser/branch/master/graph/badge.svg)](https://codecov.io/gh/aistomin/maven-dependencies-analyser)
 [![Maven Central](https://img.shields.io/maven-central/v/com.github.aistomin/maven-dependencies-analyser)](https://central.sonatype.com/artifact/com.github.aistomin/maven-dependencies-analyser)
 [![javadoc](https://javadoc.io/badge2/com.github.aistomin/maven-dependencies-analyser/javadoc.svg)](https://javadoc.io/doc/com.github.aistomin/maven-dependencies-analyser)
+[![license](https://img.shields.io/github/license/aistomin/maven-dependencies-analyser)](https://github.com/aistomin/maven-dependencies-analyser/blob/master/LICENSE)
 
 Maven plugin that analyses and validates whether all project dependencies are
 up to date.

@@ -53,6 +53,10 @@ mvn test
 # Single test class / single test method
 mvn test -Dtest=MdaMojoTest
 mvn test -Dtest=MdaMojoTest#testWarning
+
+# Rewrite the license header of every .java file from LICENSE. "validate" must
+# come first: that is the phase which extracts the header out of LICENSE.
+mvn validate license:format
 ```
 
 Notes on the build:
@@ -64,14 +68,34 @@ Notes on the build:
   (`includeTestSourceDirectory` in the `maven-checkstyle-plugin` config), so tests are held
   to exactly the same bar as production code. Match the existing files' Javadoc/comment
   style exactly or the build breaks.
-- The Apache 2.0 license header on every `.java` file is enforced by the `RegexpHeader`
-  module, which pins all 15 lines verbatim. **The copyright line is
-  `Copyright (c) 2019 Andrej Istomin` and the year is frozen at 2019** — the year of first
-  publication. Never turn it into a range, never bump it to the current year, and never add
-  automation that does: the year carries no legal weight (copyright arises without a notice
-  at all under the Berne Convention), Apache's own boilerplate uses a single year, and a
-  constant header is one that can never start failing on its own. Changing the year breaks
-  the build. `LICENSE` carries the same notice and is kept in sync by hand.
+- **`LICENSE` is the only place the license text exists.** It is the verbatim 202-line
+  Apache 2.0 text from apache.org, which is what makes GitHub and license scanners detect
+  the project as `apache-2.0`. Never edit it, never reformat it, never trim it to the short
+  notice — that is what made this repo report `NOASSERTION` before.
+
+  The license header on every `.java` file is *derived* from it, not stored. `LICENSE`'s
+  last 13 lines are the "APPENDIX: How to apply the Apache License to your work" block;
+  `maven-antrun-plugin` extracts them at `validate`, de-indents them, fills the
+  `Copyright [yyyy] [name of copyright owner]` placeholder from `<inceptionYear>` and
+  `<organization>` in `pom.xml`, and writes `target/license-header.txt`.
+  `license-maven-plugin` then checks every `.java` header against it at `process-sources`
+  and **fails the build** on a drifted or missing header. Because the extraction reruns
+  every build, the two can never fall out of step: change `LICENSE` and the headers must be
+  regenerated or the build goes red. It covers `src/**/*.java`, so it sees the test sources
+  regardless of Checkstyle's `includeTestSourceDirectory`.
+
+  So there are exactly three authored values — the Apache text in `LICENSE`, the year in
+  `<inceptionYear>`, the name in `<organization>` — and the notice itself is written nowhere.
+
+  It follows that you must never hand-edit a `.java` header (run `mvn validate
+  license:format`), and **never add a Checkstyle `Header`/`RegexpHeader` module or a
+  `conf/header.txt`-style template.** Those work by holding a second copy of the notice for
+  the first to be checked against; that copy is unchecked against `LICENSE` and will drift.
+
+  The year is fixed at **2019**, the year of first publication — never a range, never
+  bumped, and no automation to bump it. It carries no legal weight (copyright arises without
+  any notice under the Berne Convention), Apache's own boilerplate uses a single year, and a
+  constant notice is one that can never start failing on its own.
 - JaCoCo enforces **80% line coverage per package** (`jacoco:check`); new code needs tests.
 - The plugin runs itself on this repo during `verify` (dogfooding, at `WARNING` level).
 - Tests are JUnit 5 (Jupiter). Both the tests and the dogfooding step query the real Maven
