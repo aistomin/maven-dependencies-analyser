@@ -21,6 +21,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.apache.maven.plugin.MojoFailureException;
+import org.codehaus.plexus.util.xml.pull.XmlPullParserException;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -41,6 +42,16 @@ final class MdaMojoTest {
      * does not know with an outdated one which it does know.
      */
     private static final String UNKNOWN_POM_XML = "unknown_pom.xml";
+
+    /**
+     * The name of the pom file which can not be parsed at all.
+     */
+    private static final String CORRUPT_POM_XML = "corrupt_pom.xml";
+
+    /**
+     * The prefix with which the genuine errors are reported.
+     */
+    private static final String ERROR_PREFIX = "Error occurred: ";
 
     /**
      * Ctor.
@@ -197,6 +208,60 @@ final class MdaMojoTest {
         Assertions.assertThrows(MojoFailureException.class, mojo::execute);
         mojo.setThreads(null);
         Assertions.assertThrows(MojoFailureException.class, mojo::execute);
+    }
+
+    /**
+     * Check that the build is failed with exactly the report which the
+     * analysis built: an outdated dependency is a finding of the analysis,
+     * not an internal error, so it must not be dressed up as one.
+     */
+    @Test
+    void testReportIsNotWrapped() {
+        final String msg = MdaMojoTest.report(
+            MdaMojoTest.ERROR_POM_XML, null
+        );
+        Assertions.assertTrue(msg.contains("has newer versions:"), msg);
+        Assertions.assertFalse(
+            msg.contains(MdaMojoTest.ERROR_PREFIX), msg
+        );
+    }
+
+    /**
+     * Check that a pom.xml which can not be parsed is still reported as a
+     * genuine error, together with the exception which caused it.
+     */
+    @Test
+    void testCorruptPom() {
+        final MdaMojo mojo = new MdaMojo(
+            FailureLevel.ERROR,
+            Thread.currentThread().getContextClassLoader()
+                .getResource(MdaMojoTest.CORRUPT_POM_XML).getPath()
+        );
+        final MojoFailureException error = Assertions.assertThrows(
+            MojoFailureException.class, mojo::execute
+        );
+        Assertions.assertTrue(
+            error.getMessage().startsWith(MdaMojoTest.ERROR_PREFIX),
+            error.getMessage()
+        );
+        Assertions.assertInstanceOf(
+            XmlPullParserException.class, error.getCause()
+        );
+    }
+
+    /**
+     * Check that a pom.xml which can not be parsed respects the failure level
+     * as well: with WARNING it is logged and the build goes on.
+     *
+     * @throws Exception If something goes wrong.
+     */
+    @Test
+    void testCorruptPomWarning() throws Exception {
+        new MdaMojo(
+            FailureLevel.WARNING,
+            Thread.currentThread().getContextClassLoader()
+                .getResource(MdaMojoTest.CORRUPT_POM_XML).getPath()
+        ).execute();
     }
 
     /**

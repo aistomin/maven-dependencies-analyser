@@ -216,7 +216,7 @@ public final class MdaMojo extends AbstractMojo {
             artifacts = sorted(this.artifacts());
         } catch (final Throwable error) {
             this.throwError(
-                String.format("Error occurred: %s", error.getMessage())
+                String.format("Error occurred: %s", error.getMessage()), error
             );
             return;
         }
@@ -306,10 +306,25 @@ public final class MdaMojo extends AbstractMojo {
      * @throws MojoFailureException Exception.
      */
     private void throwError(final String msg) throws MojoFailureException {
+        this.throwError(msg, null);
+    }
+
+    /**
+     * Report a failure the way the failure level demands: fail the build if it
+     * is set to ERROR, only log the failure if it is set to WARNING.
+     *
+     * @param msg Message.
+     * @param cause The exception which caused the failure, so that it stays
+     *  visible in the build's log. NULL if the failure is a finding of the
+     *  analysis rather than an error.
+     * @throws MojoFailureException Exception.
+     */
+    private void throwError(final String msg, final Throwable cause)
+        throws MojoFailureException {
         if (FailureLevel.ERROR.equals(this.level)) {
-            throw new MojoFailureException(msg);
+            throw new MojoFailureException(msg, cause);
         } else if (FailureLevel.WARNING.equals(this.level)) {
-            this.logger.warn(msg);
+            this.logger.warn(msg, cause);
         } else {
             throw new IllegalStateException(
                 String.format("Unknown level: %s", this.level.name())
