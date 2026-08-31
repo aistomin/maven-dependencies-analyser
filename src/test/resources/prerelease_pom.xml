@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    The fixture for the prerelease filtering. Both versions are chosen so
+    that every assertion rests on the versions which Maven Central has
+    already published, and which therefore can never disappear:
+
+    - maven-artifact 2.0 is a release which has both newer releases
+      (2.0.2 ... 3.9.16) and newer prereleases (4.0.0-alpha-*, -beta-*,
+      -rc-*) above it. By default only the releases may be reported.
+    - maven-model 4.0.0-alpha-5 is a prerelease, and everything above it is
+      a prerelease too. It must still be reported, because its own declared
+      version is a prerelease - without that exception the artifact would
+      silently drop out of the report altogether.
+-->
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>com.github.aistomin</groupId>
+    <artifactId>prerelease-test</artifactId>
+    <version>1.0-SNAPSHOT</version>
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    </properties>
+    <dependencies>
+        <dependency>
+            <groupId>org.apache.maven</groupId>
+            <artifactId>maven-artifact</artifactId>
+            <version>2.0</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.maven</groupId>
+            <artifactId>maven-model</artifactId>
+            <version>4.0.0-alpha-5</version>
+        </dependency>
+    </dependencies>
+</project>

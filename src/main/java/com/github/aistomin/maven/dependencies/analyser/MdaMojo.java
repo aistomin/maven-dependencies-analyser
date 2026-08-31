@@ -24,6 +24,7 @@ import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutorService;
@@ -101,6 +102,18 @@ public final class MdaMojo extends AbstractMojo {
      */
     @Parameter(property = "mda.threads", defaultValue = "8")
     private Integer threads = DEFAULT_THREADS;
+
+    /**
+     * Whether the prerelease versions count as upgrades. They do not by
+     * default: an alpha, a beta, a milestone or a release candidate is not
+     * something a build must be pushed towards, and at the ERROR level a
+     * project which sits on the newest release would start failing the moment
+     * somebody publishes a prerelease. A project whose declared version is
+     * itself a prerelease is the exception, see
+     * {@link MdaMojo#reportable(MvnArtifactVersion, List)}.
+     */
+    @Parameter(property = "mda.prereleases", defaultValue = "false")
+    private Boolean prereleases = false;
 
     /**
      * Ctor.
@@ -194,6 +207,15 @@ public final class MdaMojo extends AbstractMojo {
     }
 
     /**
+     * Report the prereleases as upgrades too.
+     *
+     * @param report Must the prerelease versions be reported?
+     */
+    public void setPrereleases(final Boolean report) {
+        this.prereleases = report;
+    }
+
+    /**
      * Analyse the pom.xml file and report everything which the build's author
      * has to know: the artifacts which could not be analysed at all and the
      * ones which have newer versions.
@@ -283,7 +305,9 @@ public final class MdaMojo extends AbstractMojo {
         for (final var lookup : lookups.entrySet()) {
             final MvnArtifactVersion artifact = lookup.getKey();
             try {
-                final List<MvnArtifactVersion> newer = lookup.getValue().join();
+                final List<MvnArtifactVersion> newer = this.reportable(
+                    artifact, lookup.getValue().join()
+                );
                 if (!newer.isEmpty()) {
                     outdated.append(message(artifact, newer));
                 }
@@ -297,6 +321,50 @@ public final class MdaMojo extends AbstractMojo {
             }
         }
         return failed.append(outdated).toString();
+    }
+
+    /**
+     * Keep only the versions which are worth reporting as upgrades. Unless
+     * the prereleases were explicitly asked for, they are dropped, so that a
+     * project which sits on the newest release is reported as up to date
+     * instead of being pushed towards an alpha.
+     *
+     * <p>The exception is a declared version which is a prerelease itself:
+     * its author is already on the prerelease train, so the newer
+     * prereleases are the only upgrades they can be told about, and hiding
+     * them would leave the artifact silently unanalysed.
+     *
+     * @param declared The version which the pom.xml file declares.
+     * @param found The versions which are newer than the declared one.
+     * @return The versions which have to be reported.
+     */
+    private List<MvnArtifactVersion> reportable(
+        final MvnArtifactVersion declared,
+        final List<MvnArtifactVersion> found
+    ) {
+        final List<MvnArtifactVersion> result;
+        if (this.prereleases || new MdaVersion(declared.name()).prerelease()) {
+            result = found;
+        } else {
+            final Map<Boolean, List<MvnArtifactVersion>> split = found.stream()
+                .collect(
+                    Collectors.partitioningBy(
+                        version -> new MdaVersion(version.name()).prerelease()
+                    )
+                );
+            result = split.get(false);
+            final List<MvnArtifactVersion> ignored = split.get(true);
+            if (!ignored.isEmpty()) {
+                this.logger.debug(
+                    "{}: ignored the prerelease versions: {}",
+                    declared.artifact().identifier(),
+                    ignored.stream()
+                        .map(MvnArtifactVersion::name)
+                        .collect(Collectors.joining("; "))
+                );
+            }
+        }
+        return result;
     }
 
     /**
