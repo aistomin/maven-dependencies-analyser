@@ -79,6 +79,41 @@ has to be a positive number: anything else fails the build regardless of
 `level`, because a broken configuration is not the same thing as an outdated
 dependency.
 
+### Prerelease Versions
+
+An alpha, a beta, a milestone, a release candidate or a snapshot is not
+something a build should be pushed towards, so the plugin does not count them
+as upgrades. A project sitting on the newest release is reported as up to date
+even when a prerelease of the next version already exists. Otherwise, at the
+`ERROR` level, your build would start failing the moment somebody publishes an
+alpha.
+
+There is one exception: when the version you declare is itself a prerelease,
+the newer prereleases are still reported. Those are the only upgrades that
+exist for such a dependency, and you have already opted into that train.
+
+If you do want to hear about the prereleases, set `prereleases` to `true`:
+
+```xml
+<configuration>
+    <level>ERROR</level>
+    <prereleases>true</prereleases>
+</configuration>
+```
+
+or, for a single build:
+
+```bash
+mvn verify -Dmda.prereleases=true
+```
+
+Whether a version is a prerelease is decided by Maven's own version ordering
+rather than by a list of known qualifiers: a version is a prerelease when
+Maven ranks it below the same version without its qualifier. So `2.1.0-alpha1`,
+`4.0.0-rc-6`, `6.0.0-M1` and `1.0.0.RC1` are prereleases, while `1.0-sp1`,
+`1.0.0.RELEASE` and the build number in `1.0-1` are not. A new qualifier is
+therefore understood as soon as Maven itself understands it.
+
 ### Skip the Analysis
 
 Even in parallel, every artifact is looked up in Maven Central, so on a big

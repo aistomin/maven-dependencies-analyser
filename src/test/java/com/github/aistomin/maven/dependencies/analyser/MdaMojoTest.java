@@ -49,6 +49,24 @@ final class MdaMojoTest {
     private static final String CORRUPT_POM_XML = "corrupt_pom.xml";
 
     /**
+     * The name of the pom file which pins one artifact to a release and
+     * another one to a prerelease.
+     */
+    private static final String PRERELEASE_POM_XML = "prerelease_pom.xml";
+
+    /**
+     * The identifier of the artifact which the prerelease pom file pins to a
+     * release.
+     */
+    private static final String RELEASE_PIN = "org.apache.maven:maven-artifact";
+
+    /**
+     * The identifier of the artifact which the prerelease pom file pins to a
+     * prerelease.
+     */
+    private static final String PRERELEASE_PIN = "org.apache.maven:maven-model";
+
+    /**
      * The prefix with which the genuine errors are reported.
      */
     private static final String ERROR_PREFIX = "Error occurred: ";
@@ -265,6 +283,53 @@ final class MdaMojoTest {
     }
 
     /**
+     * Check that the prereleases are not reported as upgrades by default: the
+     * artifact which is pinned to a release is only offered the newer
+     * releases, although the newer prereleases exist as well.
+     *
+     * <p>Both assertions hold whatever Maven Central publishes next, because
+     * a version which is already published never disappears: 3.9.16 stays a
+     * release newer than 2.0, and every 4.0.0-* stays a prerelease.
+     */
+    @Test
+    void testPrereleasesIgnoredByDefault() {
+        final String line = MdaMojoTest.line(
+            MdaMojoTest.analyse(MdaMojoTest.PRERELEASE_POM_XML, false),
+            MdaMojoTest.RELEASE_PIN
+        );
+        Assertions.assertTrue(line.contains("3.9.16"), line);
+        Assertions.assertFalse(line.contains("4.0.0-"), line);
+    }
+
+    /**
+     * Check that the prereleases are reported once they are asked for.
+     */
+    @Test
+    void testPrereleasesReportedOnDemand() {
+        final String line = MdaMojoTest.line(
+            MdaMojoTest.analyse(MdaMojoTest.PRERELEASE_POM_XML, true),
+            MdaMojoTest.RELEASE_PIN
+        );
+        Assertions.assertTrue(line.contains("4.0.0-rc-6"), line);
+    }
+
+    /**
+     * Check that an artifact whose own declared version is a prerelease is
+     * still offered the newer prereleases by default. Everything newer than
+     * that artifact's version is a prerelease, so without the exception it
+     * would silently drop out of the report altogether, and its author is
+     * already on the prerelease train anyway.
+     */
+    @Test
+    void testDeclaredPrereleaseIsReported() {
+        final String line = MdaMojoTest.line(
+            MdaMojoTest.analyse(MdaMojoTest.PRERELEASE_POM_XML, false),
+            MdaMojoTest.PRERELEASE_PIN
+        );
+        Assertions.assertTrue(line.contains("4.0.0-rc-6"), line);
+    }
+
+    /**
      * Check that one of the report's two sections is ordered by the
      * artifacts' identifiers. The sections are checked apart from each other,
      * because the report lists everything which could not be analysed before
@@ -285,6 +350,47 @@ final class MdaMojoTest {
         final List<String> sorted = new ArrayList<>(lines);
         Collections.sort(sorted);
         Assertions.assertEquals(sorted, lines, report);
+    }
+
+    /**
+     * Run the analysis on the given pom file with the ERROR failure level and
+     * the given treatment of the prereleases, and return the reported
+     * message.
+     *
+     * @param pom The name of the pom file in the test resources.
+     * @param prereleases Must the prerelease versions be reported?
+     * @return The reported message.
+     */
+    private static String analyse(final String pom, final Boolean prereleases) {
+        final MdaMojo mojo = new MdaMojo(
+            FailureLevel.ERROR,
+            Thread.currentThread().getContextClassLoader()
+                .getResource(pom).getPath()
+        );
+        mojo.setPrereleases(prereleases);
+        return Assertions.assertThrows(
+            MojoFailureException.class, mojo::execute
+        ).getMessage();
+    }
+
+    /**
+     * Find the report's line about the given artifact.
+     *
+     * @param report The whole report.
+     * @param artifact The artifact's identifier.
+     * @return The line about the artifact.
+     */
+    private static String line(final String report, final String artifact) {
+        return Arrays.stream(report.split("\\R"))
+            .filter(line -> line.startsWith(artifact))
+            .findFirst()
+            .orElseThrow(
+                () -> new AssertionError(
+                    String.format(
+                        "Nothing is reported about %s in: %s", artifact, report
+                    )
+                )
+            );
     }
 
     /**
