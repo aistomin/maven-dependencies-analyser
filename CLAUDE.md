@@ -158,8 +158,12 @@ hand and don't run the release profile locally.
 
 The self-referencing `com.github.aistomin:maven-dependencies-analyser` plugin in
 `pom.xml` (the dogfooding step) is deliberately **not** bumped by the release: the version
-being released does not exist in Maven Central while the release build runs. Dependabot
-opens that bump as a `build(deps)` PR once the new version is published.
+being released does not exist in Maven Central while the release build runs. Nothing else
+bumps it either: Dependabot never even considers it, because its coordinates are the pom's
+own `groupId:artifactId` — of the 25 artifacts declared in `pom.xml` its job log shows a
+"Checking if …" line for 24, and none for the self-reference. No `dependabot.yml` rule can
+change that, so don't spend time on an `allow` entry. The pin simply drifts behind the
+latest release and is bumped ad hoc, in its own ticket, when someone notices.
 
 The workflow is not atomic — the deploy to Maven Central is irreversible and happens
 before the pushes. If a run dies after the deploy step, finish the release by hand (push
