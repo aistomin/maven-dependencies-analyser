@@ -15,10 +15,17 @@
  */
 package com.github.aistomin.maven.dependencies.analyser;
 
+import com.github.aistomin.maven.browser.MavenArtifact;
+import com.github.aistomin.maven.browser.MavenArtifactVersion;
+import com.github.aistomin.maven.browser.MavenGroup;
+import com.github.aistomin.maven.browser.MvnArtifactVersion;
+import com.github.aistomin.maven.browser.MvnPackagingType;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import org.apache.maven.plugin.MojoFailureException;
 import org.codehaus.plexus.util.xml.pull.XmlPullParserException;
@@ -70,6 +77,17 @@ final class MdaMojoTest {
      * The prefix with which the genuine errors are reported.
      */
     private static final String ERROR_PREFIX = "Error occurred: ";
+
+    /**
+     * The shape of the line with which an outdated artifact is reported: the
+     * artifact, the version which its pom.xml declares, the newest version
+     * which exists and how many versions the artifact is behind.
+     */
+    private static final Pattern OUTDATED = Pattern.compile(
+        "^(?<artifact>\\S+) \\(version (?<declared>\\S+)\\) is outdated: the"
+            + " latest version is (?<latest>\\S+) \\((?<behind>\\d+) newer"
+            + " versions? exists?\\)\\.$"
+    );
 
     /**
      * Ctor.
@@ -183,7 +201,7 @@ final class MdaMojoTest {
         );
         Assertions.assertTrue(
             msg.contains(
-                "com.github.aistomin:maven-browser (version 1.0) has newer"
+                "com.github.aistomin:maven-browser (version 1.0) is outdated:"
             ),
             msg
         );
@@ -238,7 +256,9 @@ final class MdaMojoTest {
         final String msg = MdaMojoTest.report(
             MdaMojoTest.ERROR_POM_XML, null
         );
-        Assertions.assertTrue(msg.contains("has newer versions:"), msg);
+        Assertions.assertTrue(
+            msg.contains("is outdated: the latest version is"), msg
+        );
         Assertions.assertFalse(
             msg.contains(MdaMojoTest.ERROR_PREFIX), msg
         );
@@ -284,12 +304,13 @@ final class MdaMojoTest {
 
     /**
      * Check that the prereleases are not reported as upgrades by default: the
-     * artifact which is pinned to a release is only offered the newer
-     * releases, although the newer prereleases exist as well.
+     * artifact which is pinned to a release is offered a release, although
+     * the newer prereleases exist as well.
      *
-     * <p>Both assertions hold whatever Maven Central publishes next, because
-     * a version which is already published never disappears: 3.9.16 stays a
-     * release newer than 2.0, and every 4.0.0-* stays a prerelease.
+     * <p>The assertion is made on the reported version's kind rather than on
+     * the version itself, because the report names only the newest version:
+     * the moment Maven publishes another release of that artifact, a literal
+     * version would be a false failure of this build.
      */
     @Test
     void testPrereleasesIgnoredByDefault() {
@@ -297,28 +318,50 @@ final class MdaMojoTest {
             MdaMojoTest.analyse(MdaMojoTest.PRERELEASE_POM_XML, false),
             MdaMojoTest.RELEASE_PIN
         );
-        Assertions.assertTrue(line.contains("3.9.16"), line);
-        Assertions.assertFalse(line.contains("4.0.0-"), line);
+        Assertions.assertFalse(
+            new MdaVersion(MdaMojoTest.latest(line)).prerelease(), line
+        );
     }
 
     /**
-     * Check that the prereleases are reported once they are asked for.
+     * Check that the prereleases are reported once they are asked for: the
+     * artifact which is pinned to a release is behind more versions then than
+     * it is by default.
+     *
+     * <p>The comparison of the two counts holds whatever Maven Central
+     * publishes next, because a version which is already published never
+     * disappears: the 4.0.0-* prereleases stay newer than the pinned version
+     * and stay hidden by default.
      */
     @Test
     void testPrereleasesReportedOnDemand() {
-        final String line = MdaMojoTest.line(
-            MdaMojoTest.analyse(MdaMojoTest.PRERELEASE_POM_XML, true),
-            MdaMojoTest.RELEASE_PIN
+        final int with = MdaMojoTest.behind(
+            MdaMojoTest.line(
+                MdaMojoTest.analyse(MdaMojoTest.PRERELEASE_POM_XML, true),
+                MdaMojoTest.RELEASE_PIN
+            )
         );
-        Assertions.assertTrue(line.contains("4.0.0-rc-6"), line);
+        final int without = MdaMojoTest.behind(
+            MdaMojoTest.line(
+                MdaMojoTest.analyse(MdaMojoTest.PRERELEASE_POM_XML, false),
+                MdaMojoTest.RELEASE_PIN
+            )
+        );
+        Assertions.assertTrue(
+            with > without,
+            String.format(
+                "%d versions are reported with the prereleases, %d without",
+                with, without
+            )
+        );
     }
 
     /**
      * Check that an artifact whose own declared version is a prerelease is
-     * still offered the newer prereleases by default. Everything newer than
-     * that artifact's version is a prerelease, so without the exception it
-     * would silently drop out of the report altogether, and its author is
-     * already on the prerelease train anyway.
+     * still offered the newer versions by default. Everything newer than that
+     * artifact's version is a prerelease, so without the exception it would
+     * silently drop out of the report altogether, and its author is already
+     * on the prerelease train anyway.
      */
     @Test
     void testDeclaredPrereleaseIsReported() {
@@ -326,7 +369,73 @@ final class MdaMojoTest {
             MdaMojoTest.analyse(MdaMojoTest.PRERELEASE_POM_XML, false),
             MdaMojoTest.PRERELEASE_PIN
         );
-        Assertions.assertTrue(line.contains("4.0.0-rc-6"), line);
+        Assertions.assertTrue(
+            new MdaVersion(MdaMojoTest.latest(line))
+                .compareTo(new MdaVersion(MdaMojoTest.declared(line))) > 0,
+            line
+        );
+    }
+
+    /**
+     * Check that every outdated artifact is reported with one line which
+     * names the newest version instead of listing all of them.
+     */
+    @Test
+    void testOutdatedIsReportedWithOneLine() {
+        final String report = MdaMojoTest.report(
+            MdaMojoTest.ERROR_POM_XML, null
+        );
+        final List<String> lines = Arrays.stream(report.split("\\R"))
+            .filter(line -> !line.startsWith("Can not analyse "))
+            .collect(Collectors.toList());
+        Assertions.assertFalse(lines.isEmpty(), report);
+        for (final String line : lines) {
+            Assertions.assertTrue(
+                MdaMojoTest.OUTDATED.matcher(line).matches(), line
+            );
+        }
+    }
+
+    /**
+     * Check that the newest version is the one which Maven ranks highest, not
+     * the one which the repository happened to return first: the repository
+     * answers in the order in which the versions were published.
+     */
+    @Test
+    void testLatestVersionIsReported() {
+        Assertions.assertEquals(
+            String.format(
+                "com.foo:bar (version 1.0) is outdated: the latest version is"
+                    + " 10.0 (3 newer versions exist).%n"
+            ),
+            MdaMojo.message(
+                MdaMojoTest.version("1.0"),
+                Arrays.asList(
+                    MdaMojoTest.version("2.0"),
+                    MdaMojoTest.version("10.0"),
+                    MdaMojoTest.version("9.5")
+                )
+            )
+        );
+    }
+
+    /**
+     * Check that an artifact which is behind exactly one version is reported
+     * in the singular. It is the most common finding of all, so it must not
+     * read like a template which nobody filled in.
+     */
+    @Test
+    void testSingleNewerVersionIsReported() {
+        Assertions.assertEquals(
+            String.format(
+                "com.foo:bar (version 1.0) is outdated: the latest version is"
+                    + " 2.0 (1 newer version exists).%n"
+            ),
+            MdaMojo.message(
+                MdaMojoTest.version("1.0"),
+                Collections.singletonList(MdaMojoTest.version("2.0"))
+            )
+        );
     }
 
     /**
@@ -371,6 +480,66 @@ final class MdaMojoTest {
         return Assertions.assertThrows(
             MojoFailureException.class, mojo::execute
         ).getMessage();
+    }
+
+    /**
+     * An artifact's version which is not looked up anywhere, so that the
+     * report's wording can be checked without asking the repository.
+     *
+     * @param name The version's name, e.g. "1.0".
+     * @return The version of the "com.foo:bar" artifact.
+     */
+    private static MvnArtifactVersion version(final String name) {
+        return new MavenArtifactVersion(
+            new MavenArtifact(new MavenGroup("com.foo"), "bar"),
+            name,
+            MvnPackagingType.JAR,
+            0L
+        );
+    }
+
+    /**
+     * The newest version which the report's line names.
+     *
+     * @param line The line about an outdated artifact.
+     * @return The version.
+     */
+    private static String latest(final String line) {
+        return MdaMojoTest.group(line, "latest");
+    }
+
+    /**
+     * The version which the pom.xml file declares, as the report's line names
+     * it.
+     *
+     * @param line The line about an outdated artifact.
+     * @return The version.
+     */
+    private static String declared(final String line) {
+        return MdaMojoTest.group(line, "declared");
+    }
+
+    /**
+     * The amount of the versions which the report's line counts.
+     *
+     * @param line The line about an outdated artifact.
+     * @return The amount.
+     */
+    private static int behind(final String line) {
+        return Integer.parseInt(MdaMojoTest.group(line, "behind"));
+    }
+
+    /**
+     * Read one part of the report's line about an outdated artifact.
+     *
+     * @param line The line.
+     * @param name The name of the part in {@link MdaMojoTest#OUTDATED}.
+     * @return The part.
+     */
+    private static String group(final String line, final String name) {
+        final Matcher matcher = MdaMojoTest.OUTDATED.matcher(line);
+        Assertions.assertTrue(matcher.matches(), line);
+        return matcher.group(name);
     }
 
     /**

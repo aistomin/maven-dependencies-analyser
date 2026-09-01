@@ -90,4 +90,39 @@ final class MdaVersionTest {
             );
         }
     }
+
+    /**
+     * Check that the versions are ordered by Maven's own rules. The pairs are
+     * the ones on which a simpler ordering would go wrong: a maintenance
+     * release of an older branch is older than a prerelease of a newer major
+     * although it is published later, and a two-digit major is newer than a
+     * one-digit one although it sorts before it alphabetically.
+     */
+    @Test
+    void testOrdering() {
+        final String[][] pairs = {
+            {"3.9.16", "4.0.0-rc-6"},
+            {"2.0", "10.0"},
+            {"1.0.0-alpha1", "1.0.0"},
+            {"1.0", "1.0.1"},
+        };
+        for (final String[] pair : pairs) {
+            final MdaVersion older = new MdaVersion(pair[0]);
+            final MdaVersion newer = new MdaVersion(pair[1]);
+            Assertions.assertTrue(older.compareTo(newer) < 0, pair[0]);
+            Assertions.assertTrue(newer.compareTo(older) > 0, pair[1]);
+        }
+    }
+
+    /**
+     * Check that the versions which mean the same thing are equal to each
+     * other, so that the newest of them can not depend on the order in which
+     * they happen to be compared.
+     */
+    @Test
+    void testEqualVersions() {
+        Assertions.assertEquals(
+            0, new MdaVersion("1.0").compareTo(new MdaVersion("1.0"))
+        );
+    }
 }

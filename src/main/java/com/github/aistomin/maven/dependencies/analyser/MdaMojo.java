@@ -309,6 +309,16 @@ public final class MdaMojo extends AbstractMojo {
                     artifact, lookup.getValue().join()
                 );
                 if (!newer.isEmpty()) {
+                    this.logger.debug(
+                        "{}: the newer versions are: {}",
+                        artifact.artifact().identifier(),
+                        newer.stream()
+                            .map(MvnArtifactVersion::name)
+                            .sorted(
+                                Comparator.comparing(MdaVersion::new).reversed()
+                            )
+                            .collect(Collectors.joining("; "))
+                    );
                     outdated.append(message(artifact, newer));
                 }
             } catch (final CompletionException exception) {
@@ -436,23 +446,60 @@ public final class MdaMojo extends AbstractMojo {
     }
 
     /**
-     * Build the report's line for an outdated artifact.
+     * Build the report's line for an outdated artifact: the version which the
+     * artifact has to be upgraded to, and how many versions it is behind.
+     *
+     * <p>Only the newest version is named on purpose. An artifact which is a
+     * few years behind — exactly what the analysis exists to catch — has
+     * dozens of newer versions, and a line which lists all of them is
+     * unreadable both in the log and in the build's failure message, while
+     * the actionable information is the version to move to. The whole list is
+     * logged at the debug level by {@link MdaMojo#report(List)}.
+     *
+     * <p>The method is package private rather than private so that the tests
+     * can pin the wording, the plural forms and the choice of the newest
+     * version without asking the repository anything.
      *
      * @param artifact The outdated artifact.
-     * @param newer The versions which are newer than the artifact's one.
+     * @param newer The versions which are newer than the artifact's one. Must
+     *  not be empty.
      * @return The line.
      */
-    private static String message(
+    static String message(
         final MvnArtifactVersion artifact,
         final List<MvnArtifactVersion> newer
     ) {
+        final String count;
+        if (newer.size() == 1) {
+            count = "1 newer version exists";
+        } else {
+            count = String.format("%d newer versions exist", newer.size());
+        }
         return String.format(
-            "%s (version %s) has newer versions: %s%n",
+            "%s (version %s) is outdated: the latest version is %s (%s).%n",
             artifact.artifact().identifier(),
             artifact.name(),
-            newer.stream()
-                .map(MvnArtifactVersion::name)
-                .collect(Collectors.joining("; "))
+            latest(newer).name(),
+            count
         );
+    }
+
+    /**
+     * The newest of the versions, by Maven's own ordering rules rather than by
+     * the order in which the repository returned them.
+     *
+     * @param versions The versions. Must not be empty.
+     * @return The newest version.
+     */
+    private static MvnArtifactVersion latest(
+        final List<MvnArtifactVersion> versions
+    ) {
+        return versions.stream()
+            .max(
+                Comparator.comparing(
+                    version -> new MdaVersion(version.name())
+                )
+            )
+            .orElseThrow();
     }
 }
