@@ -34,7 +34,7 @@ import org.apache.maven.artifact.versioning.ComparableVersion;
  *
  * @since 5.2
  */
-public final class MdaVersion {
+public final class MdaVersion implements Comparable<MdaVersion> {
 
     /**
      * The numeric part with which a version begins, e.g. "2.1.0" of
@@ -80,5 +80,27 @@ public final class MdaVersion {
             result = false;
         }
         return result;
+    }
+
+    /**
+     * Compare the version to another one by Maven's own ordering rules, the
+     * same rules by which the repository decides which versions are newer
+     * than the declared one.
+     *
+     * <p>That is why the newest of the found versions has to be picked with
+     * this comparison instead of with the order in which the repository
+     * returned them: the repository answers in the order in which the
+     * versions were published, so a maintenance release of an older branch,
+     * published after a newer major, would come first and be reported as the
+     * latest one.
+     *
+     * @param other The version we compare to.
+     * @return A negative number, zero or a positive number if the version is
+     *  respectively older than, equal to or newer than the other one.
+     */
+    @Override
+    public int compareTo(final MdaVersion other) {
+        return new ComparableVersion(this.version)
+            .compareTo(new ComparableVersion(other.version));
     }
 }
