@@ -20,6 +20,7 @@ import com.github.aistomin.maven.browser.MavenArtifactVersion;
 import com.github.aistomin.maven.browser.MavenGroup;
 import com.github.aistomin.maven.browser.MvnArtifactVersion;
 import com.github.aistomin.maven.browser.MvnPackagingType;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -112,22 +113,22 @@ final class MdaMojoTest {
     void testWarning() throws Exception {
         new MdaMojo(
             FailureLevel.WARNING,
-            Thread.currentThread().getContextClassLoader()
-                .getResource(MdaMojoTest.ERROR_POM_XML).getPath()
+            new MdaResource(MdaMojoTest.ERROR_POM_XML).path()
         ).execute();
     }
 
     /**
      * Check that plugin can be successfully executed with error level.
+     *
+     * @throws Exception If something goes wrong.
      */
     @Test
-    void testError() {
+    void testError() throws Exception {
         final MdaMojo mojo = new MdaMojo();
         mojo.setLevel(FailureLevel.ERROR);
         mojo.setEnabled(true);
         mojo.setPom(
-            Thread.currentThread().getContextClassLoader()
-                .getResource(MdaMojoTest.ERROR_POM_XML).getPath()
+            new MdaResource(MdaMojoTest.ERROR_POM_XML).path()
         );
         Assertions.assertThrows(MojoFailureException.class, mojo::execute);
     }
@@ -145,8 +146,7 @@ final class MdaMojoTest {
         mojo.setEnabled(true);
         mojo.setSkip(true);
         mojo.setPom(
-            Thread.currentThread().getContextClassLoader()
-                .getResource(MdaMojoTest.ERROR_POM_XML).getPath()
+            new MdaResource(MdaMojoTest.ERROR_POM_XML).path()
         );
         mojo.execute();
     }
@@ -160,8 +160,7 @@ final class MdaMojoTest {
     void testDisabled() throws Exception {
         new MdaMojo(
             FailureLevel.WARNING,
-            Thread.currentThread().getContextClassLoader()
-                .getResource(MdaMojoTest.ERROR_POM_XML).getPath(),
+            new MdaResource(MdaMojoTest.ERROR_POM_XML).path(),
             false
         ).execute();
     }
@@ -175,17 +174,18 @@ final class MdaMojoTest {
     void testParent() throws Exception {
         new MdaMojo(
             FailureLevel.WARNING,
-            Thread.currentThread().getContextClassLoader()
-                .getResource("sample_pom.xml").getPath()
+            new MdaResource("sample_pom.xml").path()
         ).execute();
     }
 
     /**
      * Check that an artifact which can not be analysed is reported, but does
      * not stop the analysis of the other artifacts.
+     *
+     * @throws Exception If something goes wrong.
      */
     @Test
-    void testUnanalysableArtifacts() {
+    void testUnanalysableArtifacts() throws Exception {
         final String msg = MdaMojoTest.report(
             MdaMojoTest.UNKNOWN_POM_XML, null
         );
@@ -212,9 +212,11 @@ final class MdaMojoTest {
      * parallel lookups happen to finish: it is the same on every run and on
      * every amount of the threads, and both of its sections are ordered by
      * the artifacts' identifiers.
+     *
+     * @throws Exception If something goes wrong.
      */
     @Test
-    void testDeterministicReport() {
+    void testDeterministicReport() throws Exception {
         final String first = MdaMojoTest.report(
             MdaMojoTest.UNKNOWN_POM_XML, null
         );
@@ -232,13 +234,14 @@ final class MdaMojoTest {
      * Check that a non-positive amount of the threads fails the build even if
      * the failure level is set to WARNING: it is a broken configuration, not
      * an outdated dependency.
+     *
+     * @throws Exception If something goes wrong.
      */
     @Test
-    void testInvalidThreads() {
+    void testInvalidThreads() throws Exception {
         final MdaMojo mojo = new MdaMojo(
             FailureLevel.WARNING,
-            Thread.currentThread().getContextClassLoader()
-                .getResource(MdaMojoTest.ERROR_POM_XML).getPath()
+            new MdaResource(MdaMojoTest.ERROR_POM_XML).path()
         );
         mojo.setThreads(0);
         Assertions.assertThrows(MojoFailureException.class, mojo::execute);
@@ -250,9 +253,11 @@ final class MdaMojoTest {
      * Check that the build is failed with exactly the report which the
      * analysis built: an outdated dependency is a finding of the analysis,
      * not an internal error, so it must not be dressed up as one.
+     *
+     * @throws Exception If something goes wrong.
      */
     @Test
-    void testReportIsNotWrapped() {
+    void testReportIsNotWrapped() throws Exception {
         final String msg = MdaMojoTest.report(
             MdaMojoTest.ERROR_POM_XML, null
         );
@@ -267,13 +272,14 @@ final class MdaMojoTest {
     /**
      * Check that a pom.xml which can not be parsed is still reported as a
      * genuine error, together with the exception which caused it.
+     *
+     * @throws Exception If something goes wrong.
      */
     @Test
-    void testCorruptPom() {
+    void testCorruptPom() throws Exception {
         final MdaMojo mojo = new MdaMojo(
             FailureLevel.ERROR,
-            Thread.currentThread().getContextClassLoader()
-                .getResource(MdaMojoTest.CORRUPT_POM_XML).getPath()
+            new MdaResource(MdaMojoTest.CORRUPT_POM_XML).path()
         );
         final MojoFailureException error = Assertions.assertThrows(
             MojoFailureException.class, mojo::execute
@@ -297,8 +303,7 @@ final class MdaMojoTest {
     void testCorruptPomWarning() throws Exception {
         new MdaMojo(
             FailureLevel.WARNING,
-            Thread.currentThread().getContextClassLoader()
-                .getResource(MdaMojoTest.CORRUPT_POM_XML).getPath()
+            new MdaResource(MdaMojoTest.CORRUPT_POM_XML).path()
         ).execute();
     }
 
@@ -311,9 +316,11 @@ final class MdaMojoTest {
      * the version itself, because the report names only the newest version:
      * the moment Maven publishes another release of that artifact, a literal
      * version would be a false failure of this build.
+     *
+     * @throws Exception If something goes wrong.
      */
     @Test
-    void testPrereleasesIgnoredByDefault() {
+    void testPrereleasesIgnoredByDefault() throws Exception {
         final String line = MdaMojoTest.line(
             MdaMojoTest.analyse(MdaMojoTest.PRERELEASE_POM_XML, false),
             MdaMojoTest.RELEASE_PIN
@@ -332,9 +339,11 @@ final class MdaMojoTest {
      * publishes next, because a version which is already published never
      * disappears: the 4.0.0-* prereleases stay newer than the pinned version
      * and stay hidden by default.
+     *
+     * @throws Exception If something goes wrong.
      */
     @Test
-    void testPrereleasesReportedOnDemand() {
+    void testPrereleasesReportedOnDemand() throws Exception {
         final int with = MdaMojoTest.behind(
             MdaMojoTest.line(
                 MdaMojoTest.analyse(MdaMojoTest.PRERELEASE_POM_XML, true),
@@ -362,9 +371,11 @@ final class MdaMojoTest {
      * artifact's version is a prerelease, so without the exception it would
      * silently drop out of the report altogether, and its author is already
      * on the prerelease train anyway.
+     *
+     * @throws Exception If something goes wrong.
      */
     @Test
-    void testDeclaredPrereleaseIsReported() {
+    void testDeclaredPrereleaseIsReported() throws Exception {
         final String line = MdaMojoTest.line(
             MdaMojoTest.analyse(MdaMojoTest.PRERELEASE_POM_XML, false),
             MdaMojoTest.PRERELEASE_PIN
@@ -379,9 +390,11 @@ final class MdaMojoTest {
     /**
      * Check that every outdated artifact is reported with one line which
      * names the newest version instead of listing all of them.
+     *
+     * @throws Exception If something goes wrong.
      */
     @Test
-    void testOutdatedIsReportedWithOneLine() {
+    void testOutdatedIsReportedWithOneLine() throws Exception {
         final String report = MdaMojoTest.report(
             MdaMojoTest.ERROR_POM_XML, null
         );
@@ -439,6 +452,31 @@ final class MdaMojoTest {
     }
 
     /**
+     * Check that a failed lookup is explained by the exception's message when
+     * there is one.
+     */
+    @Test
+    void testReasonUsesTheMessage() {
+        Assertions.assertEquals(
+            "the host is unreachable",
+            MdaMojo.reason(new IOException("the host is unreachable"))
+        );
+    }
+
+    /**
+     * Check that a failed lookup is explained by the exception itself when it
+     * carries no message. Otherwise the report would read "Can not analyse X.
+     * null", which names neither the problem nor the exception.
+     */
+    @Test
+    void testReasonFallsBackToTheException() {
+        Assertions.assertEquals(
+            "java.io.IOException",
+            MdaMojo.reason(new IOException())
+        );
+    }
+
+    /**
      * Check that one of the report's two sections is ordered by the
      * artifacts' identifiers. The sections are checked apart from each other,
      * because the report lists everything which could not be analysed before
@@ -469,12 +507,14 @@ final class MdaMojoTest {
      * @param pom The name of the pom file in the test resources.
      * @param prereleases Must the prerelease versions be reported?
      * @return The reported message.
+     * @throws Exception If something goes wrong.
      */
-    private static String analyse(final String pom, final Boolean prereleases) {
+    private static String analyse(
+        final String pom, final Boolean prereleases
+    ) throws Exception {
         final MdaMojo mojo = new MdaMojo(
             FailureLevel.ERROR,
-            Thread.currentThread().getContextClassLoader()
-                .getResource(pom).getPath()
+            new MdaResource(pom).path()
         );
         mojo.setPrereleases(prereleases);
         return Assertions.assertThrows(
@@ -569,12 +609,14 @@ final class MdaMojoTest {
      * @param pom The name of the pom file in the test resources.
      * @param threads The amount of the threads. NULL - use the default.
      * @return The reported message.
+     * @throws Exception If something goes wrong.
      */
-    private static String report(final String pom, final Integer threads) {
+    private static String report(
+        final String pom, final Integer threads
+    ) throws Exception {
         final MdaMojo mojo = new MdaMojo(
             FailureLevel.ERROR,
-            Thread.currentThread().getContextClassLoader()
-                .getResource(pom).getPath()
+            new MdaResource(pom).path()
         );
         if (threads != null) {
             mojo.setThreads(threads);

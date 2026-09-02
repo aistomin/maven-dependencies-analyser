@@ -35,29 +35,18 @@ final class MdaPomTest {
     /**
      * Sample pom file.
      */
-    private final String sample = Thread
-        .currentThread()
-        .getContextClassLoader()
-        .getResource("sample_pom.xml")
-        .getFile();
+    private final MdaResource sample = new MdaResource("sample_pom.xml");
 
     /**
      * Parentless sample pom file.
      */
-    private final String parentlessSample = Thread
-        .currentThread()
-        .getContextClassLoader()
-        .getResource("parentless_pom.xml")
-        .getFile();
+    private final MdaResource parentlessSample =
+        new MdaResource("parentless_pom.xml");
 
     /**
      * The pom file which declares versions in all the possible sections.
      */
-    private final String sections = Thread
-        .currentThread()
-        .getContextClassLoader()
-        .getResource("sections_pom.xml")
-        .getFile();
+    private final MdaResource sections = new MdaResource("sections_pom.xml");
 
     /**
      * Ctor.
@@ -111,7 +100,7 @@ final class MdaPomTest {
             )
         );
         final List<MvnArtifactVersion> dependencies =
-            new MdaPom(this.sample).dependencies();
+            new MdaPom(this.sample.path()).dependencies();
         Assertions.assertEquals(expected.size(), dependencies.size());
         for (final MvnArtifactVersion dependency : dependencies) {
             Assertions.assertTrue(
@@ -146,7 +135,7 @@ final class MdaPomTest {
             )
         );
         final List<MvnArtifactVersion> plugins =
-            new MdaPom(this.sample).plugins();
+            new MdaPom(this.sample.path()).plugins();
         Assertions.assertEquals(expected.size(), plugins.size());
         for (final MvnArtifactVersion plugin : plugins) {
             Assertions.assertTrue(
@@ -173,7 +162,7 @@ final class MdaPomTest {
             artifact("com.puppycrawl.tools", "checkstyle", "10.12.5")
         );
         final List<MvnArtifactVersion> dependencies =
-            new MdaPom(this.sections).dependencies();
+            new MdaPom(this.sections.path()).dependencies();
         Assertions.assertEquals(expected.size(), dependencies.size());
         for (final MvnArtifactVersion dependency : dependencies) {
             Assertions.assertTrue(
@@ -204,7 +193,7 @@ final class MdaPomTest {
             )
         );
         final List<MvnArtifactVersion> found =
-            new MdaPom(this.sections).plugins();
+            new MdaPom(this.sections.path()).plugins();
         Assertions.assertEquals(expected.size(), found.size());
         for (final MvnArtifactVersion plugin : found) {
             Assertions.assertTrue(
@@ -226,7 +215,7 @@ final class MdaPomTest {
         );
         Assertions.assertEquals(
             1,
-            new MdaPom(this.sections)
+            new MdaPom(this.sections.path())
                 .plugins()
                 .stream()
                 .filter(duplicate::equals)
@@ -243,10 +232,10 @@ final class MdaPomTest {
     void testParent() throws Exception {
         Assertions.assertEquals(
             "org.springframework.boot:spring-boot-starter-parent:2.7.9",
-            new MdaPom(this.sample).parent().identifier()
+            new MdaPom(this.sample.path()).parent().identifier()
         );
         Assertions.assertNull(
-            new MdaPom(this.parentlessSample).parent()
+            new MdaPom(this.parentlessSample.path()).parent()
         );
     }
 

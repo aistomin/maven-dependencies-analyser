@@ -152,9 +152,9 @@ public final class MdaMojo extends AbstractMojo {
         if (this.skip || !this.enabled) {
             final String line =
                 "***********************************************";
-            this.logger.warn(line);
-            this.logger.warn("Maven dependencies analysis is switched off.");
-            this.logger.warn(line);
+            this.logger.info(line);
+            this.logger.info("Maven dependencies analysis is switched off.");
+            this.logger.info(line);
         } else {
             this.analyse();
         }
@@ -325,7 +325,7 @@ public final class MdaMojo extends AbstractMojo {
                 failed.append(
                     String.format(
                         "Can not analyse %s. %s%n",
-                        artifact, exception.getCause().getMessage()
+                        artifact, reason(exception.getCause())
                     )
                 );
             }
@@ -373,6 +373,27 @@ public final class MdaMojo extends AbstractMojo {
                         .collect(Collectors.joining("; "))
                 );
             }
+        }
+        return result;
+    }
+
+    /**
+     * Explain a failed lookup. Not every exception carries a message: an
+     * {@link java.io.IOException} thrown without one would render the report
+     * as "Can not analyse X. null", which names neither the problem nor the
+     * exception. In that case the exception itself is the only information
+     * there is, so its {@code toString()} is reported instead.
+     *
+     * @param error The error which the lookup failed with.
+     * @return The text which describes the error.
+     */
+    static String reason(final Throwable error) {
+        final String message = error.getMessage();
+        final String result;
+        if (message == null) {
+            result = error.toString();
+        } else {
+            result = message;
         }
         return result;
     }
