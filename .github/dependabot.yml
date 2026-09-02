@@ -12,6 +12,15 @@ updates:
     commit-message:
       prefix: "build"
       include: "scope"
+    ignore:
+      # Pinned to the oldest supported Maven (${mvnMinVersion} in pom.xml, also
+      # published as <prerequisites>). They are provided by the user's Maven at
+      # runtime, so we compile against the floor on purpose. Raising them means
+      # dropping support for older Maven - a deliberate decision, never an
+      # automatic version bump.
+      - dependency-name: "org.apache.maven:maven-model"
+      - dependency-name: "org.apache.maven:maven-plugin-api"
+      - dependency-name: "org.apache.maven:maven-artifact"
   - package-ecosystem: "github-actions"
     directory: "/" # Dependabot always scans .github/workflows from the root
     schedule:
