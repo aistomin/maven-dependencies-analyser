@@ -384,9 +384,19 @@
             <plugin>
                 <groupId>com.github.aistomin</groupId>
                 <artifactId>maven-dependencies-analyser</artifactId>
-                <version>5.1</version>
+                <version>5.2</version>
                 <configuration>
                     <level>WARNING</level>
+                    <!--
+                        The org.apache.maven artifacts are pinned to
+                        mvnMinVersion (see the dependencies section), so they
+                        will never be "up to date" and reporting them is noise.
+                    -->
+                    <ignores>
+                        <ignore>org.apache.maven:maven-artifact</ignore>
+                        <ignore>org.apache.maven:maven-model</ignore>
+                        <ignore>org.apache.maven:maven-plugin-api</ignore>
+                    </ignores>
                 </configuration>
                 <executions>
                     <execution>
