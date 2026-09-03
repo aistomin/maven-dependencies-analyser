@@ -65,6 +65,25 @@ final class MdaMojoTest {
     private static final String PRERELEASE_POM_XML = "prerelease_pom.xml";
 
     /**
+     * The name of the pom file with a parent, dependencies and plugins.
+     */
+    private static final String SAMPLE_POM_XML = "sample_pom.xml";
+
+    /**
+     * The identifier of the outdated dependency of the erroneous pom file
+     * which belongs to the "com.github.aistomin" group.
+     */
+    private static final String BROWSER =
+        "com.github.aistomin:maven-browser";
+
+    /**
+     * The identifier of the outdated dependency of the erroneous pom file
+     * which belongs to the "org.springframework.boot" group.
+     */
+    private static final String STARTER =
+        "org.springframework.boot:spring-boot-starter";
+
+    /**
      * The identifier of the artifact which the prerelease pom file pins to a
      * release.
      */
@@ -176,8 +195,111 @@ final class MdaMojoTest {
     void testParent() throws Exception {
         new MdaMojo(
             FailureLevel.WARNING,
-            new MdaResource("sample_pom.xml").file()
+            new MdaResource(MdaMojoTest.SAMPLE_POM_XML).file()
         ).execute();
+    }
+
+    /**
+     * Check that an ignored artifact is not reported, while the artifacts
+     * which are not ignored still are.
+     *
+     * @throws Exception If something goes wrong.
+     */
+    @Test
+    void testIgnoredArtifactIsNotReported() throws Exception {
+        final String report = MdaMojoTest.reportIgnoring(
+            MdaMojoTest.ERROR_POM_XML, MdaMojoTest.BROWSER
+        );
+        Assertions.assertFalse(
+            report.contains(MdaMojoTest.BROWSER), report
+        );
+        Assertions.assertTrue(
+            report.contains(MdaMojoTest.STARTER), report
+        );
+    }
+
+    /**
+     * Check that the "*" wildcard as the artifactId ignores the whole group
+     * at once, and nothing else.
+     *
+     * @throws Exception If something goes wrong.
+     */
+    @Test
+    void testIgnoresWholeGroup() throws Exception {
+        final String report = MdaMojoTest.reportIgnoring(
+            MdaMojoTest.ERROR_POM_XML, "org.springframework.boot:*"
+        );
+        Assertions.assertFalse(
+            report.contains(MdaMojoTest.STARTER), report
+        );
+        Assertions.assertTrue(
+            report.contains(MdaMojoTest.BROWSER), report
+        );
+    }
+
+    /**
+     * Check that a pom file whose every outdated artifact is ignored passes
+     * the analysis even at the ERROR level: "*" is accepted as the groupId
+     * and as the artifactId alike, so "*:*" ignores everything.
+     *
+     * @throws Exception If something goes wrong.
+     */
+    @Test
+    void testEverythingIgnoredPasses() throws Exception {
+        final MdaMojo mojo = new MdaMojo(
+            FailureLevel.ERROR,
+            new MdaResource(MdaMojoTest.ERROR_POM_XML).file()
+        );
+        mojo.setIgnores(Collections.singletonList("*:*"));
+        mojo.execute();
+    }
+
+    /**
+     * Check that the "ignores" parameter covers the parent and the plugins
+     * the same way it covers the dependencies. The baseline run pins that
+     * the ignored artifacts would have been reported otherwise.
+     *
+     * @throws Exception If something goes wrong.
+     */
+    @Test
+    void testIgnoresCoverParentAndPlugins() throws Exception {
+        final String parent =
+            "org.springframework.boot:spring-boot-starter-parent";
+        final String plugin =
+            "org.apache.maven.plugins:maven-surefire-plugin";
+        final String baseline =
+            MdaMojoTest.reportIgnoring(MdaMojoTest.SAMPLE_POM_XML);
+        Assertions.assertTrue(baseline.contains(parent), baseline);
+        Assertions.assertTrue(baseline.contains(plugin), baseline);
+        final String report = MdaMojoTest.reportIgnoring(
+            MdaMojoTest.SAMPLE_POM_XML, parent, plugin
+        );
+        Assertions.assertFalse(report.contains(parent), report);
+        Assertions.assertFalse(report.contains(plugin), report);
+    }
+
+    /**
+     * Check that an entry which is not a "groupId:artifactId" coordinate
+     * fails the build even if the failure level is set to WARNING: it is a
+     * broken configuration, not an outdated dependency.
+     *
+     * @throws Exception If something goes wrong.
+     */
+    @Test
+    void testInvalidIgnoreFailsRegardlessOfLevel() throws Exception {
+        final List<String> invalid = Arrays.asList(
+            "foo", "a:b:c", "org.apache.*", ":bar", "a:b ", null
+        );
+        for (final String entry : invalid) {
+            final MdaMojo mojo = new MdaMojo(
+                FailureLevel.WARNING,
+                new MdaResource(MdaMojoTest.ERROR_POM_XML).file()
+            );
+            mojo.setIgnores(Collections.singletonList(entry));
+            Assertions.assertThrows(
+                MojoFailureException.class, mojo::execute, entry
+            );
+        }
     }
 
     /**
@@ -654,6 +776,28 @@ final class MdaMojoTest {
                     )
                 )
             );
+    }
+
+    /**
+     * Run the analysis on the given pom file with the ERROR failure level
+     * and the given ignored coordinates, and return the reported message.
+     *
+     * @param pom The name of the pom file in the test resources.
+     * @param ignores The "groupId:artifactId" entries which are ignored.
+     * @return The reported message.
+     * @throws Exception If something goes wrong.
+     */
+    private static String reportIgnoring(
+        final String pom, final String... ignores
+    ) throws Exception {
+        final MdaMojo mojo = new MdaMojo(
+            FailureLevel.ERROR,
+            new MdaResource(pom).file()
+        );
+        mojo.setIgnores(Arrays.asList(ignores));
+        return Assertions.assertThrows(
+            MojoFailureException.class, mojo::execute
+        ).getMessage();
     }
 
     /**

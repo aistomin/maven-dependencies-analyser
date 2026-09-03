@@ -114,6 +114,50 @@ Maven ranks it below the same version without its qualifier. So `2.1.0-alpha1`,
 `1.0.0.RELEASE` and the build number in `1.0-1` are not. A new qualifier is
 therefore understood as soon as Maven itself understands it.
 
+### Ignoring Selected Artifacts
+
+Some pins are deliberate and permanent. A Maven plugin, for example, has to
+compile against the oldest Maven it supports, so the `org.apache.maven`
+artifacts it depends on will never be "up to date" and the report about them
+is never actionable. The `ignores` configuration excludes such artifacts from
+the analysis:
+
+```xml
+<configuration>
+    <level>ERROR</level>
+    <ignores>
+        <ignore>org.apache.maven:maven-model</ignore>
+        <ignore>org.apache.maven:maven-plugin-api</ignore>
+        <ignore>org.apache.maven:maven-artifact</ignore>
+    </ignores>
+</configuration>
+```
+
+Each entry is a `groupId:artifactId` coordinate. `*` is accepted in place of
+the whole groupId or the whole artifactId, so an entire group can be ignored
+at once:
+
+```xml
+<ignore>org.apache.maven:*</ignore>
+```
+
+Partial patterns like `org.apache.*` are not supported. Anything which is not
+a `groupId:artifactId` coordinate fails the build regardless of `level`,
+because a broken configuration is not the same thing as an outdated
+dependency.
+
+The matching covers the parent, the dependencies and the plugins alike. An
+ignored artifact is never reported, never fails the build and is not even
+looked up in Maven Central; what was ignored is logged at the `debug` level,
+so a surprising report can still be explained.
+
+Like every other parameter, the list can be set from the command line,
+comma-separated:
+
+```bash
+mvn verify -Dmda.ignores=org.apache.maven:maven-model,org.apache.maven:*
+```
+
 ### Skip the Analysis
 
 Even in parallel, every artifact is looked up in Maven Central, so on a big
