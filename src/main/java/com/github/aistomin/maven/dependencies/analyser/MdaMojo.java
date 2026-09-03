@@ -292,7 +292,7 @@ public final class MdaMojo extends AbstractMojo {
         final List<MvnArtifactVersion> artifacts;
         try {
             artifacts = sorted(this.artifacts());
-        } catch (final Throwable error) {
+        } catch (final Exception error) {
             this.throwError(
                 String.format("Error occurred: %s", error.getMessage()), error
             );
@@ -580,7 +580,7 @@ public final class MdaMojo extends AbstractMojo {
     ) {
         try {
             return repo.findVersionsNewerThan(artifact);
-        } catch (final Throwable exception) {
+        } catch (final Exception exception) {
             throw new CompletionException(exception);
         }
     }
