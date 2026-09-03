@@ -20,16 +20,19 @@ import com.github.aistomin.maven.browser.MvnArtifactVersion;
 import com.github.aistomin.maven.browser.MvnRepo;
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoFailureException;
@@ -63,6 +66,14 @@ public final class MdaMojo extends AbstractMojo {
      * accepts a string literal there.
      */
     private static final int DEFAULT_THREADS = 8;
+
+    /**
+     * The shape which every entry of {@link MdaMojo#ignores} must have: a
+     * groupId and an artifactId separated by one colon, each of them either
+     * a literal or the sole "*".
+     */
+    private static final Pattern COORDINATE =
+        Pattern.compile("(\\*|[^\\s:*]+):(\\*|[^\\s:*]+)");
 
     /**
      * Logger.
@@ -125,6 +136,18 @@ public final class MdaMojo extends AbstractMojo {
      */
     @Parameter(property = "mda.prereleases", defaultValue = "false")
     private Boolean prereleases = false;
+
+    /**
+     * The "groupId:artifactId" coordinates which are excluded from the
+     * analysis. Some pins are deliberate and permanent — an artifact pinned
+     * to the oldest Maven a plugin supports will never be "up to date" — so
+     * a report about them is noise which this parameter silences. "*"
+     * replaces the whole groupId or the whole artifactId, e.g.
+     * "org.apache.maven:*"; the finer patterns do not exist. An ignored
+     * artifact is not even looked up in the repository.
+     */
+    @Parameter(property = "mda.ignores")
+    private List<String> ignores = new ArrayList<>(0);
 
     /**
      * Ctor.
@@ -227,6 +250,16 @@ public final class MdaMojo extends AbstractMojo {
     }
 
     /**
+     * Set the coordinates which are excluded from the analysis.
+     *
+     * @param coordinates The "groupId:artifactId" entries, "*" accepted as
+     *  the whole groupId or the whole artifactId.
+     */
+    public void setIgnores(final List<String> coordinates) {
+        this.ignores = coordinates;
+    }
+
+    /**
      * Analyse the pom.xml file and report everything which the build's author
      * has to know: the artifacts which could not be analysed at all and the
      * ones which have newer versions.
@@ -243,6 +276,18 @@ public final class MdaMojo extends AbstractMojo {
                     this.threads
                 )
             );
+        }
+        for (final String entry : this.ignores) {
+            if (entry == null || !COORDINATE.matcher(entry).matches()) {
+                throw new MojoFailureException(
+                    String.format(
+                        "mda.ignores entries must be \"groupId:artifactId\""
+                            + " coordinates, with \"*\" accepted as either"
+                            + " part, but an entry is: %s.",
+                        entry
+                    )
+                );
+            }
         }
         final List<MvnArtifactVersion> artifacts;
         try {
@@ -263,7 +308,8 @@ public final class MdaMojo extends AbstractMojo {
 
     /**
      * All the artifacts which have to be analysed: the parent, the
-     * dependencies and the plugins.
+     * dependencies and the plugins, without the ones which the "ignores"
+     * parameter excludes.
      *
      * @return The artifacts.
      * @throws IOException If the pom.xml file is not found or corrupted.
@@ -280,7 +326,69 @@ public final class MdaMojo extends AbstractMojo {
         }
         result.addAll(config.dependencies());
         result.addAll(config.plugins());
+        return this.checked(result);
+    }
+
+    /**
+     * Drop the artifacts which the "ignores" parameter excludes from the
+     * analysis. The parent, the dependencies and the plugins have all been
+     * collected by now, so the parameter covers them alike. An ignored
+     * artifact is not even looked up in the repository, but it is logged,
+     * so that a surprising report can still be explained.
+     *
+     * @param artifacts All the artifacts of the pom.xml file.
+     * @return The artifacts which have to be analysed.
+     */
+    private Collection<MvnArtifactVersion> checked(
+        final Collection<MvnArtifactVersion> artifacts
+    ) {
+        final Collection<MvnArtifactVersion> result = new LinkedHashSet<>();
+        for (final MvnArtifactVersion artifact : artifacts) {
+            final Optional<String> rule = this.ignore(artifact);
+            if (rule.isPresent()) {
+                this.logger.debug(
+                    "{}: ignored, it matches the mda.ignores entry \"{}\".",
+                    artifact.artifact().identifier(),
+                    rule.get()
+                );
+            } else {
+                result.add(artifact);
+            }
+        }
         return result;
+    }
+
+    /**
+     * The first entry of the "ignores" parameter which matches the artifact.
+     * The entries have been validated by now, so every one of them is two
+     * segments separated by one colon.
+     *
+     * @param artifact The artifact.
+     * @return The entry, or empty if the artifact has to be analysed.
+     */
+    private Optional<String> ignore(final MvnArtifactVersion artifact) {
+        return this.ignores.stream()
+            .filter(
+                entry -> {
+                    final String[] parts = entry.split(":");
+                    return matches(
+                        parts[0], artifact.artifact().group().name()
+                    ) && matches(parts[1], artifact.artifact().name());
+                }
+            )
+            .findFirst();
+    }
+
+    /**
+     * Check whether one segment of an "ignores" entry covers the name: it
+     * does when it is the "*" wildcard or the name itself.
+     *
+     * @param pattern The segment of the entry, a literal or "*".
+     * @param name The groupId or the artifactId of an artifact.
+     * @return TRUE if the segment covers the name.
+     */
+    private static boolean matches(final String pattern, final String name) {
+        return "*".equals(pattern) || pattern.equals(name);
     }
 
     /**
