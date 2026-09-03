@@ -28,6 +28,8 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.xpath.XPathFactory;
 import org.apache.maven.plugin.MojoFailureException;
 import org.codehaus.plexus.util.xml.pull.XmlPullParserException;
 import org.junit.jupiter.api.Assertions;
@@ -113,7 +115,7 @@ final class MdaMojoTest {
     void testWarning() throws Exception {
         new MdaMojo(
             FailureLevel.WARNING,
-            new MdaResource(MdaMojoTest.ERROR_POM_XML).path()
+            new MdaResource(MdaMojoTest.ERROR_POM_XML).file()
         ).execute();
     }
 
@@ -128,7 +130,7 @@ final class MdaMojoTest {
         mojo.setLevel(FailureLevel.ERROR);
         mojo.setEnabled(true);
         mojo.setPom(
-            new MdaResource(MdaMojoTest.ERROR_POM_XML).path()
+            new MdaResource(MdaMojoTest.ERROR_POM_XML).file()
         );
         Assertions.assertThrows(MojoFailureException.class, mojo::execute);
     }
@@ -146,7 +148,7 @@ final class MdaMojoTest {
         mojo.setEnabled(true);
         mojo.setSkip(true);
         mojo.setPom(
-            new MdaResource(MdaMojoTest.ERROR_POM_XML).path()
+            new MdaResource(MdaMojoTest.ERROR_POM_XML).file()
         );
         mojo.execute();
     }
@@ -160,7 +162,7 @@ final class MdaMojoTest {
     void testDisabled() throws Exception {
         new MdaMojo(
             FailureLevel.WARNING,
-            new MdaResource(MdaMojoTest.ERROR_POM_XML).path(),
+            new MdaResource(MdaMojoTest.ERROR_POM_XML).file(),
             false
         ).execute();
     }
@@ -174,7 +176,7 @@ final class MdaMojoTest {
     void testParent() throws Exception {
         new MdaMojo(
             FailureLevel.WARNING,
-            new MdaResource("sample_pom.xml").path()
+            new MdaResource("sample_pom.xml").file()
         ).execute();
     }
 
@@ -241,7 +243,7 @@ final class MdaMojoTest {
     void testInvalidThreads() throws Exception {
         final MdaMojo mojo = new MdaMojo(
             FailureLevel.WARNING,
-            new MdaResource(MdaMojoTest.ERROR_POM_XML).path()
+            new MdaResource(MdaMojoTest.ERROR_POM_XML).file()
         );
         mojo.setThreads(0);
         Assertions.assertThrows(MojoFailureException.class, mojo::execute);
@@ -279,7 +281,7 @@ final class MdaMojoTest {
     void testCorruptPom() throws Exception {
         final MdaMojo mojo = new MdaMojo(
             FailureLevel.ERROR,
-            new MdaResource(MdaMojoTest.CORRUPT_POM_XML).path()
+            new MdaResource(MdaMojoTest.CORRUPT_POM_XML).file()
         );
         final MojoFailureException error = Assertions.assertThrows(
             MojoFailureException.class, mojo::execute
@@ -303,7 +305,7 @@ final class MdaMojoTest {
     void testCorruptPomWarning() throws Exception {
         new MdaMojo(
             FailureLevel.WARNING,
-            new MdaResource(MdaMojoTest.CORRUPT_POM_XML).path()
+            new MdaResource(MdaMojoTest.CORRUPT_POM_XML).file()
         ).execute();
     }
 
@@ -477,6 +479,58 @@ final class MdaMojoTest {
     }
 
     /**
+     * Check that the analysis is pointed at the pom.xml of the project which
+     * is being built rather than at the one of the directory Maven was
+     * started in. Every module of a multi-module build has to be analysed
+     * against its own pom.
+     *
+     * <p>The plugin's descriptor is the only place where the default value
+     * can be observed: the {@code @Parameter} annotation is not kept in the
+     * class file, and Maven itself reads nothing but the descriptor.
+     *
+     * <p>The parameter's type is pinned together with the default value,
+     * because {@code ${project.file}} evaluates to a {@link java.io.File} and
+     * Maven silently ignores the value for a parameter of any other type. A
+     * revert to a path would therefore break nothing visibly: it would only
+     * bring the wrong pom back.
+     *
+     * @throws Exception If something goes wrong.
+     */
+    @Test
+    void testPomDefaultsToTheBuiltProject() throws Exception {
+        Assertions.assertEquals(
+            "java.io.File", MdaMojoTest.descriptor("implementation")
+        );
+        Assertions.assertEquals(
+            "${project.file}", MdaMojoTest.descriptor("default-value")
+        );
+    }
+
+    /**
+     * Read the attribute with which the plugin's descriptor declares the
+     * "pom" parameter of the "check" goal.
+     *
+     * @param attribute The name of the attribute.
+     * @return The attribute's value.
+     * @throws Exception If something goes wrong.
+     */
+    private static String descriptor(final String attribute) throws Exception {
+        return XPathFactory.newInstance()
+            .newXPath()
+            .evaluate(
+                String.format(
+                    "/plugin/mojos/mojo[goal='check']/configuration/pom/@%s",
+                    attribute
+                ),
+                DocumentBuilderFactory.newInstance()
+                    .newDocumentBuilder()
+                    .parse(
+                        new MdaResource("META-INF/maven/plugin.xml").file()
+                    )
+            );
+    }
+
+    /**
      * Check that one of the report's two sections is ordered by the
      * artifacts' identifiers. The sections are checked apart from each other,
      * because the report lists everything which could not be analysed before
@@ -514,7 +568,7 @@ final class MdaMojoTest {
     ) throws Exception {
         final MdaMojo mojo = new MdaMojo(
             FailureLevel.ERROR,
-            new MdaResource(pom).path()
+            new MdaResource(pom).file()
         );
         mojo.setPrereleases(prereleases);
         return Assertions.assertThrows(
@@ -616,7 +670,7 @@ final class MdaMojoTest {
     ) throws Exception {
         final MdaMojo mojo = new MdaMojo(
             FailureLevel.ERROR,
-            new MdaResource(pom).path()
+            new MdaResource(pom).file()
         );
         if (threads != null) {
             mojo.setThreads(threads);

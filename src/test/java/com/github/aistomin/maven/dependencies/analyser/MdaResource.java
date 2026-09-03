@@ -15,6 +15,7 @@
  */
 package com.github.aistomin.maven.dependencies.analyser;
 
+import java.io.File;
 import java.net.URISyntaxException;
 import java.nio.file.Paths;
 
@@ -47,17 +48,27 @@ final class MdaResource {
     }
 
     /**
+     * The resource as a file.
+     *
+     * @return The file.
+     * @throws URISyntaxException If the resource's URL is not a valid URI.
+     */
+    File file() throws URISyntaxException {
+        return Paths.get(
+            Thread.currentThread()
+                .getContextClassLoader()
+                .getResource(this.name)
+                .toURI()
+        ).toFile();
+    }
+
+    /**
      * The path of the resource in the file system.
      *
      * @return The absolute path.
      * @throws URISyntaxException If the resource's URL is not a valid URI.
      */
     String path() throws URISyntaxException {
-        return Paths.get(
-            Thread.currentThread()
-                .getContextClassLoader()
-                .getResource(this.name)
-                .toURI()
-        ).toString();
+        return this.file().toString();
     }
 }
