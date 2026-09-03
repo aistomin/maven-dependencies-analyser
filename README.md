@@ -48,7 +48,8 @@ Add the following configuration to your project's `pom.xml`:
 With this configuration, the Maven build will fail if any of the 
 dependencies of your project are out of date. If you do not want the build to
 fail, but rather just show a warning, please change the `level` 
-configuration value from `ERROR` to `WARNING`.
+configuration value from `ERROR` to `WARNING`. If `level` is not configured
+at all, it defaults to `WARNING`.
 
 With the `enabled` configuration, you can easily turn the dependencies 
 validation off. The configuration section would then look like this:
@@ -202,12 +203,17 @@ versions declared in:
 An artifact that is declared more than once is checked only once.
 
 In a multi-module build every module is analysed against its own `pom.xml`,
-not against the one of the directory Maven was started in.
+not against the one of the directory Maven was started in. That is the
+default of the `pom` parameter, `${project.file}` — the pom of the project
+the goal runs for. It can be pointed at any other file, e.g.
+`-Dmda.pom=path/to/pom.xml`.
 
 Artifacts without a version are skipped, because their version is inherited
-from a parent pom. If a version is declared as a `${property}` which can not be
-resolved from the pom's own `<properties>`, the artifact is skipped as well and
-a warning is logged, so that you can see that the analysis was not complete.
+from a parent pom. If a version is declared as a `${property}` which can not
+be resolved from the pom itself — its `<properties>`, the properties of its
+profiles, and the built-in `project.version` and `project.parent.version` —
+the artifact is skipped as well and a warning is logged, so that you can see
+that the analysis was not complete.
 
 ### Run the Plugin Manually
 
