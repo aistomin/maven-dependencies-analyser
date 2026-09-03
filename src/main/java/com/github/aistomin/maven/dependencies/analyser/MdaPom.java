@@ -28,6 +28,9 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
+import java.util.Properties;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import org.apache.maven.model.Build;
 import org.apache.maven.model.BuildBase;
@@ -52,6 +55,23 @@ import org.slf4j.LoggerFactory;
  * @since 0.1
  */
 public final class MdaPom implements MdaBuildFile {
+
+    /**
+     * The marker which starts a property placeholder in a version.
+     */
+    private static final String MARKER = "${";
+
+    /**
+     * The pattern of a single property placeholder inside a version.
+     */
+    private static final Pattern PLACEHOLDER =
+        Pattern.compile("\\$\\{([^}]+)}");
+
+    /**
+     * The maximum amount of the substitution rounds. It stops the
+     * interpolation of the cyclic property definitions.
+     */
+    private static final int ROUNDS = 10;
 
     /**
      * Logger.
@@ -326,26 +346,105 @@ public final class MdaPom implements MdaBuildFile {
     }
 
     /**
-     * Sometimes the version of the artifact can be set as property. We need to
-     * get the real value.
+     * Sometimes the version of the artifact contains property placeholders.
+     * We need to get the real value: every placeholder is substituted using
+     * {@link MdaPom#properties(Model)}, repeatedly, until the version stops
+     * changing or {@link MdaPom#ROUNDS} is reached, whichever comes first.
+     * The version which still contains a placeholder after that can not be
+     * resolved.
      *
      * @param model The pom.xml model.
      * @param version Dependency's version.
-     * @return The real version.
+     * @return The real version or NULL if it can not be resolved.
      */
     private static String dependencyVersion(
         final Model model, final String version
     ) {
-        final String marker = "${";
         String result = version;
-        if (version != null && version.contains(marker)) {
-            result = model
-                .getProperties()
-                .getProperty(
-                    version.replace(marker, "").replace("}", "")
-                );
+        if (version != null && version.contains(MARKER)) {
+            final Properties properties = properties(model);
+            for (int round = 0; round < ROUNDS; round = round + 1) {
+                final String next = substituted(result, properties);
+                if (next.equals(result)) {
+                    break;
+                }
+                result = next;
+            }
+            if (result.contains(MARKER)) {
+                result = null;
+            }
         }
         return result;
+    }
+
+    /**
+     * All the properties which the placeholders in the versions can be
+     * resolved against: the built-in project.version and
+     * project.parent.version, the top-level properties and the properties
+     * of the profiles. The later sources win over the earlier ones.
+     *
+     * @param model The pom.xml model.
+     * @return The properties.
+     */
+    private static Properties properties(final Model model) {
+        final Properties result = new Properties();
+        final Parent parent = model.getParent();
+        if (parent != null && parent.getVersion() != null) {
+            result.setProperty(
+                "project.parent.version", parent.getVersion()
+            );
+        }
+        final String version = projectVersion(model);
+        if (version != null) {
+            result.setProperty("project.version", version);
+        }
+        result.putAll(model.getProperties());
+        for (final Profile profile : model.getProfiles()) {
+            result.putAll(profile.getProperties());
+        }
+        return result;
+    }
+
+    /**
+     * The version of the project: either the explicitly declared one or,
+     * when it is omitted, the version of the parent it is then inherited
+     * from.
+     *
+     * @param model The pom.xml model.
+     * @return The version or NULL if the pom declares neither.
+     */
+    private static String projectVersion(final Model model) {
+        String result = model.getVersion();
+        if (result == null && model.getParent() != null) {
+            result = model.getParent().getVersion();
+        }
+        return result;
+    }
+
+    /**
+     * Substitute every placeholder of the version which is defined in the
+     * properties. The placeholders which are not defined stay as they are.
+     *
+     * @param version The version.
+     * @param properties The properties to resolve the placeholders against.
+     * @return The version with the placeholders substituted.
+     */
+    private static String substituted(
+        final String version, final Properties properties
+    ) {
+        final Matcher matcher = PLACEHOLDER.matcher(version);
+        final StringBuilder result = new StringBuilder();
+        while (matcher.find()) {
+            String value = properties.getProperty(matcher.group(1));
+            if (value == null) {
+                value = matcher.group(0);
+            }
+            matcher.appendReplacement(
+                result, Matcher.quoteReplacement(value)
+            );
+        }
+        matcher.appendTail(result);
+        return result.toString();
     }
 
     /**

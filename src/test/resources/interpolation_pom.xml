@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>com.github.aistomin</groupId>
+        <artifactId>parent</artifactId>
+        <version>7.1</version>
+    </parent>
+    <groupId>com.github.aistomin</groupId>
+    <artifactId>interpolation</artifactId>
+    <version>2.5</version>
+    <packaging>jar</packaging>
+    <name>Interpolation</name>
+    <description>The pom.xml where the versions are the property references of all the supported shapes.</description>
+    <url>https://github.com/aistomin/maven-dependencies-analyser</url>
+    <properties>
+        <patch>17</patch>
+        <slf4jVersion>1.7.36</slf4jVersion>
+        <chained>${slf4jVersion}</chained>
+        <first>${second}</first>
+        <second>${first}</second>
+        <mockitoVersion>1.0.0</mockitoVersion>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    </properties>
+    <dependencies>
+        <!-- The standard sibling pattern: the version of the project. -->
+        <dependency>
+            <groupId>com.github.aistomin</groupId>
+            <artifactId>sibling</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <!-- The version of the parent. -->
+        <dependency>
+            <groupId>com.github.aistomin</groupId>
+            <artifactId>uncle</artifactId>
+            <version>${project.parent.version}</version>
+        </dependency>
+        <!-- The composite version. -->
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-lang3</artifactId>
+            <version>1.2.${patch}</version>
+        </dependency>
+        <!-- The property which points to another property. -->
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+            <version>${chained}</version>
+        </dependency>
+        <!-- The property is declared in the profile only. -->
+        <dependency>
+            <groupId>com.puppycrawl.tools</groupId>
+            <artifactId>checkstyle</artifactId>
+            <version>${checkstyleVersion}</version>
+        </dependency>
+        <!-- The profile overrides the top-level value. -->
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-core</artifactId>
+            <version>${mockitoVersion}</version>
+        </dependency>
+        <!-- The cycle: it can not be resolved, it must be skipped. -->
+        <dependency>
+            <groupId>org.postgresql</groupId>
+            <artifactId>postgresql</artifactId>
+            <version>${first}</version>
+        </dependency>
+        <!-- The property is not declared, it must be skipped. -->
+        <dependency>
+            <groupId>org.hsqldb</groupId>
+            <artifactId>hsqldb</artifactId>
+            <version>${missing}</version>
+        </dependency>
+    </dependencies>
+    <profiles>
+        <profile>
+            <id>ci</id>
+            <properties>
+                <checkstyleVersion>10.12.5</checkstyleVersion>
+                <mockitoVersion>5.8.0</mockitoVersion>
+            </properties>
+        </profile>
+    </profiles>
+</project>
