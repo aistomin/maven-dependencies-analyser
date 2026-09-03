@@ -22,6 +22,7 @@ import com.github.aistomin.maven.browser.MvnArtifactVersion;
 import com.github.aistomin.maven.browser.MvnPackagingType;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -61,6 +62,13 @@ public final class MdaPom implements MdaBuildFile {
      * The pom.xml file.
      */
     private final File file;
+
+    /**
+     * The parsed model of the pom.xml file. The file is parsed lazily, on
+     * the first call of {@link MdaPom#model()}, and only once: the parent,
+     * the dependencies and the plugins are all read from this one model.
+     */
+    private Model parsed;
 
     /**
      * Ctor.
@@ -160,15 +168,22 @@ public final class MdaPom implements MdaBuildFile {
     }
 
     /**
-     * Parse the model.
+     * The model of the pom.xml file. The file is parsed on the first call;
+     * the following calls return the already parsed model.
      *
      * @return Model.
      * @throws IOException If the file is not found or corrupted.
      * @throws XmlPullParserException If file parsing was not successful.
      */
     private Model model() throws IOException, XmlPullParserException {
-        return new MavenXpp3Reader()
-            .read(Files.newInputStream(this.file.toPath()));
+        if (this.parsed == null) {
+            try (
+                InputStream stream = Files.newInputStream(this.file.toPath())
+            ) {
+                this.parsed = new MavenXpp3Reader().read(stream);
+            }
+        }
+        return this.parsed;
     }
 
     /**
