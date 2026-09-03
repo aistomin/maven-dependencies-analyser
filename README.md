@@ -142,7 +142,8 @@ All the plugin's parameters can be set from the command line as
 
 ### What Is Analysed
 
-The plugin reads your `pom.xml` and checks the versions declared in:
+The plugin reads the `pom.xml` of the project it runs for and checks the
+versions declared in:
 
 - `<parent>`;
 - `<dependencies>` and `<dependencyManagement>`;
@@ -155,6 +156,9 @@ The plugin reads your `pom.xml` and checks the versions declared in:
   top-level `<build>`.
 
 An artifact that is declared more than once is checked only once.
+
+In a multi-module build every module is analysed against its own `pom.xml`,
+not against the one of the directory Maven was started in.
 
 Artifacts without a version are skipped, because their version is inherited
 from a parent pom. If a version is declared as a `${property}` which can not be

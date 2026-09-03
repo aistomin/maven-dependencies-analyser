@@ -18,6 +18,7 @@ package com.github.aistomin.maven.dependencies.analyser;
 import com.github.aistomin.maven.browser.MavenCentral;
 import com.github.aistomin.maven.browser.MvnArtifactVersion;
 import com.github.aistomin.maven.browser.MvnRepo;
+import java.io.File;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Comparator;
@@ -89,10 +90,20 @@ public final class MdaMojo extends AbstractMojo {
     private Boolean skip = false;
 
     /**
-     * The path to the pom.xml file.
+     * The pom.xml file which is analysed. It defaults to the pom of the
+     * project the goal runs for, so that every module of a multi-module build
+     * is analysed against its own pom and {@code mvn -f} is honoured. The
+     * literal "pom.xml" of the older versions was resolved against the
+     * directory Maven was started in, which made every module of a reactor
+     * analyse the root pom and silently report the wrong result.
+     *
+     * <p>The parameter is a {@link File} rather than a path, because
+     * {@code ${project.file}} evaluates to a {@link File}: Maven does not
+     * assign it to a {@link String} field and drops the value without a word,
+     * leaving the analysis on whatever the field was initialised with.
      */
-    @Parameter(property = "mda.pom", defaultValue = "pom.xml")
-    private String pom;
+    @Parameter(property = "mda.pom", defaultValue = "${project.file}")
+    private File pom;
 
     /**
      * The maximal amount of the artifacts which are looked up in the
@@ -119,16 +130,16 @@ public final class MdaMojo extends AbstractMojo {
      * Ctor.
      */
     public MdaMojo() {
-        this(FailureLevel.WARNING, "pom.xml");
+        this(FailureLevel.WARNING, new File("pom.xml"));
     }
 
     /**
      * Ctor.
      *
      * @param severity Failure level.
-     * @param file The path to the pom.xml file.
+     * @param file The pom.xml file.
      */
-    public MdaMojo(final FailureLevel severity, final String file) {
+    public MdaMojo(final FailureLevel severity, final File file) {
         this(severity, file, true);
     }
 
@@ -136,11 +147,11 @@ public final class MdaMojo extends AbstractMojo {
      * Ctor.
      *
      * @param severity Failure level.
-     * @param file The path to the pom.xml file.
+     * @param file The pom.xml file.
      * @param active Is validation enabled?
      */
     public MdaMojo(
-        final FailureLevel severity, final String file, final Boolean active
+        final FailureLevel severity, final File file, final Boolean active
     ) {
         this.level = severity;
         this.pom = file;
@@ -188,12 +199,12 @@ public final class MdaMojo extends AbstractMojo {
     }
 
     /**
-     * Set the path to the pom.xml file.
+     * Set the pom.xml file which has to be analysed.
      *
-     * @param path The path to the pom.xml file.
+     * @param file The pom.xml file.
      */
-    public void setPom(final String path) {
-        this.pom = path;
+    public void setPom(final File file) {
+        this.pom = file;
     }
 
     /**
