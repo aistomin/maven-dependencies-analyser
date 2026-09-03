@@ -49,6 +49,13 @@ final class MdaPomTest {
     private final MdaResource sections = new MdaResource("sections_pom.xml");
 
     /**
+     * The pom file where the versions are the property references of all
+     * the supported shapes.
+     */
+    private final MdaResource interpolation =
+        new MdaResource("interpolation_pom.xml");
+
+    /**
      * Ctor.
      */
     MdaPomTest() {
@@ -198,6 +205,36 @@ final class MdaPomTest {
         for (final MvnArtifactVersion plugin : found) {
             Assertions.assertTrue(
                 expected.stream().anyMatch(exp -> exp.equals(plugin))
+            );
+        }
+    }
+
+    /**
+     * Check that the property references in the versions are resolved: the
+     * built-in project and parent versions, the profile properties (which
+     * win over the top-level ones), the composite versions and the
+     * properties which point to other properties. The versions which can
+     * not be resolved, like a cycle or a property which is not declared,
+     * are skipped.
+     *
+     * @throws Exception If something goes wrong.
+     */
+    @Test
+    void testPropertyVersionsAreResolved() throws Exception {
+        final List<MvnArtifactVersion> expected = Arrays.asList(
+            artifact("com.github.aistomin", "sibling", "2.5"),
+            artifact("com.github.aistomin", "uncle", "7.1"),
+            artifact("org.apache.commons", "commons-lang3", "1.2.17"),
+            artifact("org.slf4j", "slf4j-api", "1.7.36"),
+            artifact("com.puppycrawl.tools", "checkstyle", "10.12.5"),
+            artifact("org.mockito", "mockito-core", "5.8.0")
+        );
+        final List<MvnArtifactVersion> dependencies =
+            new MdaPom(this.interpolation.path()).dependencies();
+        Assertions.assertEquals(expected.size(), dependencies.size());
+        for (final MvnArtifactVersion dependency : dependencies) {
+            Assertions.assertTrue(
+                expected.stream().anyMatch(exp -> exp.equals(dependency))
             );
         }
     }
