@@ -171,6 +171,22 @@ the release commit, create the `v<version>` release, bump the pom to the next
 `X.Y-SNAPSHOT`, close the ticket and the milestone) and do **not** re-dispatch the
 workflow: Maven Central rejects republishing a version.
 
+After every release, javadoc.io must be synced by hand — it generates docs lazily and
+never notices new Maven Central versions on its own, so the README badge and docs link
+stay stale until triggered. Once the artifacts have propagated to Central, run (no auth
+needed, both return 303):
+
+```bash
+curl -X POST https://javadoc.io/versions/com.github.aistomin/maven-dependencies-analyser/sync
+curl -X POST -d "versionId=<version>" https://javadoc.io/versions/com.github.aistomin/maven-dependencies-analyser/upload
+```
+
+Then verify that the badge and
+https://javadoc.io/doc/com.github.aistomin/maven-dependencies-analyser show the new
+version. The same can be done in the browser on the [versions
+page](https://javadoc.io/versions/com.github.aistomin/maven-dependencies-analyser):
+"Sync from Maven", then select the new version and "Upload selected".
+
 ## Git conventions
 
 Work on a branch named `Issue-<number>` off `master`. Commit messages are
@@ -204,6 +220,9 @@ Every issue must have all three of:
    gh api repos/aistomin/maven-dependencies-analyser/milestones \
      --jq '[.[] | select(.state=="open")] | sort_by(.number) | last | .title'
    ```
+
+Titles are plain imperative sentences (e.g. "Trigger the javadoc.io sync for version
+5.2") — never Conventional Commits format; that is for commits and PR titles only.
 
 Body shape: a short problem statement, then the proposal or acceptance criteria when the
 issue is more than one line, and always the contribute link last.
