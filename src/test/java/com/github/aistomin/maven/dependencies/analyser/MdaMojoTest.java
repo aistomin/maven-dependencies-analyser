@@ -20,7 +20,10 @@ import com.github.aistomin.maven.browser.MavenArtifactVersion;
 import com.github.aistomin.maven.browser.MavenGroup;
 import com.github.aistomin.maven.browser.MvnArtifactVersion;
 import com.github.aistomin.maven.browser.MvnPackagingType;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.PrintStream;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -99,6 +102,12 @@ final class MdaMojoTest {
      * The prefix with which the genuine errors are reported.
      */
     private static final String ERROR_PREFIX = "Error occurred: ";
+
+    /**
+     * The part of the log's line about an excluded artifact which every such
+     * line has, whichever artifact and whichever entry it names.
+     */
+    private static final String IGNORED = "ignored, it matches";
 
     /**
      * The shape of the line with which an outdated artifact is reported: the
@@ -300,6 +309,56 @@ final class MdaMojoTest {
                 MojoFailureException.class, mojo::execute, entry
             );
         }
+    }
+
+    /**
+     * Check that an excluded artifact is logged at the INFO level, together
+     * with the entry which matched it. The message used to be a debug one,
+     * which made an exclusion that somebody configured and then forgot
+     * invisible in an ordinary build: the artifact was simply never
+     * mentioned, exactly like an artifact which is up to date.
+     *
+     * @throws Exception If something goes wrong.
+     */
+    @Test
+    void testIgnoredArtifactIsLoggedAtInfoLevel() throws Exception {
+        final String logged = MdaMojoTest.logOf(
+            MdaMojoTest.ERROR_POM_XML, MdaMojoTest.BROWSER
+        );
+        final String line = Arrays.stream(logged.split("\\R"))
+            .filter(entry -> entry.contains(MdaMojoTest.IGNORED))
+            .findFirst()
+            .orElseThrow(
+                () -> new AssertionError(
+                    String.format(
+                        "Nothing is logged about the exclusion in: %s", logged
+                    )
+                )
+            );
+        Assertions.assertTrue(
+            line.contains(
+                String.format(
+                    "%s: ignored, it matches the mda.ignores entry \"%s\".",
+                    MdaMojoTest.BROWSER, MdaMojoTest.BROWSER
+                )
+            ),
+            line
+        );
+        Assertions.assertTrue(line.contains("INFO"), line);
+    }
+
+    /**
+     * Check that a build which excludes nothing logs nothing about the
+     * exclusions: the visibility must not cost a line in every build.
+     *
+     * @throws Exception If something goes wrong.
+     */
+    @Test
+    void testNothingIsLoggedWithoutIgnores() throws Exception {
+        final String logged = MdaMojoTest.logOf(MdaMojoTest.ERROR_POM_XML);
+        Assertions.assertFalse(
+            logged.contains(MdaMojoTest.IGNORED), logged
+        );
     }
 
     /**
@@ -798,6 +857,47 @@ final class MdaMojoTest {
         return Assertions.assertThrows(
             MojoFailureException.class, mojo::execute
         ).getMessage();
+    }
+
+    /**
+     * Run the analysis on the given pom file with the WARNING failure level
+     * and the given ignored coordinates, and return everything which it
+     * logged. The level is WARNING rather than ERROR so that the analysis
+     * runs to its end instead of being cut short by the exception.
+     *
+     * <p>The log is captured from the standard error stream, because that is
+     * where slf4j-simple, the binding of the tests, writes it. The stream is
+     * swapped rather than the logger, so that the test sees the real message
+     * at its real level; slf4j-simple looks the stream up on every write and
+     * logs at INFO by default, so a debug message would not appear there at
+     * all.
+     *
+     * @param pom The name of the pom file in the test resources.
+     * @param ignores The "groupId:artifactId" entries which are ignored.
+     * @return Everything which was logged while the analysis ran.
+     * @throws Exception If something goes wrong.
+     */
+    private static String logOf(
+        final String pom, final String... ignores
+    ) throws Exception {
+        final MdaMojo mojo = new MdaMojo(
+            FailureLevel.WARNING,
+            new MdaResource(pom).file()
+        );
+        mojo.setIgnores(Arrays.asList(ignores));
+        final ByteArrayOutputStream captured = new ByteArrayOutputStream();
+        final PrintStream original = System.err;
+        try (
+            PrintStream stream = new PrintStream(
+                captured, true, StandardCharsets.UTF_8
+            )
+        ) {
+            System.setErr(stream);
+            mojo.execute();
+        } finally {
+            System.setErr(original);
+        }
+        return captured.toString(StandardCharsets.UTF_8);
     }
 
     /**

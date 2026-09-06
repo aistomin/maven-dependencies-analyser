@@ -149,8 +149,17 @@ dependency.
 
 The matching covers the parent, the dependencies and the plugins alike. An
 ignored artifact is never reported, never fails the build and is not even
-looked up in Maven Central; what was ignored is logged at the `debug` level,
-so a surprising report can still be explained.
+looked up in Maven Central. Every exclusion is logged at the `info` level,
+together with the entry which matched it, so an ordinary build shows at a
+glance what is not being analysed:
+
+```
+[INFO] org.apache.maven:maven-model: ignored, it matches the mda.ignores entry "org.apache.maven:maven-model".
+[INFO] org.apache.maven:maven-plugin-api: ignored, it matches the mda.ignores entry "org.apache.maven:maven-plugin-api".
+[INFO] org.apache.maven:maven-artifact: ignored, it matches the mda.ignores entry "org.apache.maven:maven-artifact".
+```
+
+A build which configures no `ignores` prints nothing extra.
 
 Like every other parameter, the list can be set from the command line,
 comma-separated:
