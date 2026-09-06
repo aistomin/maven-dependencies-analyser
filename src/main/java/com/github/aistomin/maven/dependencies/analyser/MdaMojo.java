@@ -333,8 +333,14 @@ public final class MdaMojo extends AbstractMojo {
      * Drop the artifacts which the "ignores" parameter excludes from the
      * analysis. The parent, the dependencies and the plugins have all been
      * collected by now, so the parameter covers them alike. An ignored
-     * artifact is not even looked up in the repository, but it is logged,
-     * so that a surprising report can still be explained.
+     * artifact is not even looked up in the repository.
+     *
+     * <p>Every drop is logged at the INFO level, together with the entry
+     * which matched it, so that the exclusions are visible in an ordinary
+     * build. An exclusion is configuration which somebody wrote once and then
+     * forgets about, and a silently unanalysed artifact is indistinguishable
+     * from an up to date one: at the debug level the only way to find out why
+     * an artifact is not reported was to rerun the build with "-X".
      *
      * @param artifacts All the artifacts of the pom.xml file.
      * @return The artifacts which have to be analysed.
@@ -346,7 +352,7 @@ public final class MdaMojo extends AbstractMojo {
         for (final MvnArtifactVersion artifact : artifacts) {
             final Optional<String> rule = this.ignore(artifact);
             if (rule.isPresent()) {
-                this.logger.debug(
+                this.logger.info(
                     "{}: ignored, it matches the mda.ignores entry \"{}\".",
                     artifact.artifact().identifier(),
                     rule.get()
