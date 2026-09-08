@@ -81,7 +81,7 @@
             and maven-plugin-plugin. Unrelated to the Maven version above.
         -->
         <mvnPluginToolsVersion>3.15.2</mvnPluginToolsVersion>
-        <slf4jVersion>2.0.18</slf4jVersion>
+        <slf4jVersion>2.0.19</slf4jVersion>
     </properties>
     <dependencies>
         <dependency>
