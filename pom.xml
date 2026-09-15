@@ -80,7 +80,7 @@
             maven-plugin-tools, which releases both maven-plugin-annotations
             and maven-plugin-plugin. Unrelated to the Maven version above.
         -->
-        <mvnPluginToolsVersion>3.15.2</mvnPluginToolsVersion>
+        <mvnPluginToolsVersion>3.16.0</mvnPluginToolsVersion>
         <slf4jVersion>2.0.19</slf4jVersion>
     </properties>
     <dependencies>
