@@ -63,10 +63,10 @@
         <!--
             The Java version, written once for the whole build. "release" is
             deliberately used instead of the "source"/"target" pair: it also
-            checks the code against the JDK 21 API, so an API newer than 21
+            checks the code against the JDK 25 API, so an API newer than 25
             cannot slip in unnoticed when the build runs on a newer JDK.
         -->
-        <maven.compiler.release>21</maven.compiler.release>
+        <maven.compiler.release>25</maven.compiler.release>
         <linkXRef>false</linkXRef>
         <junitVersion>6.1.3</junitVersion>
         <!--
@@ -231,7 +231,7 @@
                                     <version>[${mvnMinVersion},)</version>
                                 </requireMavenVersion>
                                 <requireJavaVersion>
-                                    <version>[21,)</version>
+                                    <version>[25,)</version>
                                 </requireJavaVersion>
                             </rules>
                         </configuration>

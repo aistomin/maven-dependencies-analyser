@@ -14,8 +14,12 @@ up to date.
 
 ### System Requirements
 
-- JDK 21 or higher.
+- JDK 25 or higher.
 - Apache Maven 3.8.3 or higher.
+
+Version 6.0 raises the minimum from JDK 21: the plugin is compiled with
+`release=25`, so an older JDK cannot load it. Stay on 5.x if your build
+still runs on JDK 21.
 
 ### Validate Project Dependencies
 
