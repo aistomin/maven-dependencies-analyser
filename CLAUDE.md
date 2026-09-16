@@ -35,11 +35,11 @@ sort it out afterwards — a public push cannot be taken back.
 
 ## Project
 
-`maven-dependencies-analyser` is a Maven plugin (single Maven module, JDK 21, `packaging:
+`maven-dependencies-analyser` is a Maven plugin (single Maven module, JDK 25, `packaging:
 maven-plugin`, goal prefix `maven-dependencies-analyser`) with a single goal, `check`, that
 parses a project's `pom.xml` and fails or warns the build when the parent, dependencies, or
 plugins have newer versions in Maven Central. It is published to Maven Central as
-`com.github.aistomin:maven-dependencies-analyser`. Requires JDK 21+ and Maven 3.8.3+.
+`com.github.aistomin:maven-dependencies-analyser`. Requires JDK 25+ and Maven 3.8.3+.
 
 ## Commands
 
@@ -314,7 +314,7 @@ to push.
    mvn clean install
    ```
 
-   It needs JDK 21 and network access (the tests and the dogfooding step call the real
+   It needs JDK 25 and network access (the tests and the dogfooding step call the real
    Maven Central APIs); mention in the proposal if either is missing. Remember the build
    gates: javadoc with `doclint=all` at `package`, strict Checkstyle, PMD, and
    duplicate-finder at `verify`, and JaCoCo's 95% line coverage per package — new code
