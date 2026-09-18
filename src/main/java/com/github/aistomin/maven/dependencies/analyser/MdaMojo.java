@@ -56,14 +56,11 @@ import org.slf4j.LoggerFactory;
 public final class MdaMojo extends AbstractMojo {
 
     /**
-     * The default amount of the threads which look the versions up. The
-     * lookups spend nearly all their time waiting for Maven Central to
-     * answer, so the amount of the CPU cores is a poor measure for them: a
-     * two-core CI machine would run two lookups at a time although none of
-     * them is CPU bound. A constant also keeps the analysis equally fast
-     * everywhere. The same value is repeated in the {@link Parameter}
-     * annotation of {@link MdaMojo#threads} because an annotation only
-     * accepts a string literal there.
+     * The default amount of the threads which look the versions up. It bounds
+     * how many requests Maven Central gets at a time, and a constant keeps
+     * the analysis equally fast everywhere. The same value is repeated in the
+     * {@link Parameter} annotation of {@link MdaMojo#threads} because an
+     * annotation only accepts a string literal there.
      */
     private static final int DEFAULT_THREADS = 8;
 
@@ -412,7 +409,7 @@ public final class MdaMojo extends AbstractMojo {
             MvnArtifactVersion, CompletableFuture<List<MvnArtifactVersion>>
             >();
         try (
-            ExecutorService pool = Executors.newFixedThreadPool(
+            ExecutorService executor = pool(
                 Math.min(this.threads, Math.max(artifacts.size(), 1))
             )
         ) {
@@ -420,7 +417,7 @@ public final class MdaMojo extends AbstractMojo {
                 lookups.put(
                     artifact,
                     CompletableFuture.supplyAsync(
-                        () -> newer(repo, artifact), pool
+                        () -> newer(repo, artifact), executor
                     )
                 );
             }
@@ -456,6 +453,28 @@ public final class MdaMojo extends AbstractMojo {
             }
         }
         return failed.append(outdated).toString();
+    }
+
+    /**
+     * The pool which runs the lookups. Its threads are virtual: a lookup
+     * spends nearly all of its time waiting for Maven Central to answer, and
+     * a parked virtual thread occupies no thread of the operating system, so
+     * the analysis costs the build nothing while it waits. The pool is still
+     * a fixed one, because its size is what bounds the amount of the requests
+     * which Maven Central gets at a time.
+     *
+     * <p>The method is package private rather than private so that the tests
+     * can pin both of these properties — the threads are virtual and the
+     * size is a bound — without asking the repository anything.
+     *
+     * @param size The maximal amount of the lookups which run at the same
+     *  time. Must be positive.
+     * @return The pool.
+     */
+    static ExecutorService pool(final int size) {
+        return Executors.newFixedThreadPool(
+            size, Thread.ofVirtual().factory()
+        );
     }
 
     /**

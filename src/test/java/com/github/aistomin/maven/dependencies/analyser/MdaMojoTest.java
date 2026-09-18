@@ -28,6 +28,11 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -119,6 +124,18 @@ final class MdaMojoTest {
             + " latest version is (?<latest>\\S+) \\((?<behind>\\d+) newer"
             + " versions? exists?\\)\\.$"
     );
+
+    /**
+     * The size of the pool which the bounded lookups are run on.
+     */
+    private static final int SLOTS = 2;
+
+    /**
+     * The amount of the lookups which are submitted to the bounded pool:
+     * more than it has slots, so that some of them have to wait for a free
+     * one.
+     */
+    private static final int TASKS = 4;
 
     /**
      * Ctor.
@@ -632,6 +649,67 @@ final class MdaMojoTest {
                 Collections.singletonList(MdaMojoTest.version("2.0"))
             )
         );
+    }
+
+    /**
+     * Check that the lookups run on virtual threads. A lookup waits for
+     * Maven Central nearly all of its time, and a parked virtual thread
+     * occupies no thread of the operating system, so an analysis costs the
+     * build no threads while it waits.
+     */
+    @Test
+    void testLookupsRunOnVirtualThreads() {
+        try (ExecutorService pool = MdaMojo.pool(1)) {
+            Assertions.assertTrue(
+                CompletableFuture.supplyAsync(
+                    () -> Thread.currentThread().isVirtual(), pool
+                ).join()
+            );
+        }
+    }
+
+    /**
+     * Check that the pool never runs more lookups at the same time than it
+     * has slots. The bound is what keeps the analysis polite to Maven
+     * Central, and it is the one thing which the virtual threads must not
+     * have taken away: they are cheap enough to make firing every request of
+     * a big project at once look harmless.
+     *
+     * <p>Every task blocks until as many of them as the pool has slots have
+     * started, so the peak is the amount of the slots and nothing else: an
+     * unbounded pool reaches {@link MdaMojoTest#TASKS} instead. Both waits
+     * are bounded, so that a regression fails the build instead of hanging
+     * it.
+     *
+     * @throws Exception If something goes wrong.
+     */
+    @Test
+    void testPoolBoundsTheLookups() throws Exception {
+        final AtomicInteger running = new AtomicInteger();
+        final AtomicInteger peak = new AtomicInteger();
+        final CountDownLatch started = new CountDownLatch(MdaMojoTest.SLOTS);
+        final CountDownLatch release = new CountDownLatch(1);
+        try (ExecutorService pool = MdaMojo.pool(MdaMojoTest.SLOTS)) {
+            for (int task = 0; task < MdaMojoTest.TASKS; task = task + 1) {
+                pool.execute(
+                    () -> {
+                        peak.accumulateAndGet(
+                            running.incrementAndGet(), Math::max
+                        );
+                        started.countDown();
+                        try {
+                            release.await(1L, TimeUnit.MINUTES);
+                        } catch (final InterruptedException interrupted) {
+                            Thread.currentThread().interrupt();
+                        }
+                        running.decrementAndGet();
+                    }
+                );
+            }
+            Assertions.assertTrue(started.await(1L, TimeUnit.MINUTES));
+            release.countDown();
+        }
+        Assertions.assertEquals(MdaMojoTest.SLOTS, peak.get());
     }
 
     /**
