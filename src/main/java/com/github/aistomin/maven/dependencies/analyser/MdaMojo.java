@@ -65,14 +65,6 @@ public final class MdaMojo extends AbstractMojo {
     private static final int DEFAULT_THREADS = 8;
 
     /**
-     * The shape which every entry of {@link MdaMojo#ignores} must have: a
-     * groupId and an artifactId separated by one colon, each of them either
-     * a literal or the sole "*".
-     */
-    private static final Pattern COORDINATE =
-        Pattern.compile("(\\*|[^\\s:*]+):(\\*|[^\\s:*]+)");
-
-    /**
      * Logger.
      */
     private final Logger logger = LoggerFactory.getLogger(getClass());
@@ -274,21 +266,10 @@ public final class MdaMojo extends AbstractMojo {
                 )
             );
         }
-        for (final String entry : this.ignores) {
-            if (entry == null || !COORDINATE.matcher(entry).matches()) {
-                throw new MojoFailureException(
-                    String.format(
-                        "mda.ignores entries must be \"groupId:artifactId\""
-                            + " coordinates, with \"*\" accepted as either"
-                            + " part, but an entry is: %s.",
-                        entry
-                    )
-                );
-            }
-        }
+        final List<Ignore> exclusions = this.exclusions();
         final List<MvnArtifactVersion> artifacts;
         try {
-            artifacts = sorted(this.artifacts());
+            artifacts = sorted(this.artifacts(exclusions));
         } catch (final Exception error) {
             this.throwError(
                 String.format("Error occurred: %s", error.getMessage()), error
@@ -304,17 +285,38 @@ public final class MdaMojo extends AbstractMojo {
     }
 
     /**
+     * The entries of the "ignores" parameter, parsed into the coordinates
+     * they match against. They are parsed once, before anything is looked up
+     * in the repository: a malformed entry is a misconfiguration which has to
+     * fail the build immediately, and the parsed entries are then matched
+     * against every artifact without being read apart again.
+     *
+     * @return The parsed entries, in the order the parameter declares them.
+     * @throws MojoFailureException If an entry is not a "groupId:artifactId"
+     *  coordinate.
+     */
+    private List<Ignore> exclusions() throws MojoFailureException {
+        final List<Ignore> result = new ArrayList<>(this.ignores.size());
+        for (final String entry : this.ignores) {
+            result.add(Ignore.parsed(entry));
+        }
+        return result;
+    }
+
+    /**
      * All the artifacts which have to be analysed: the parent, the
      * dependencies and the plugins, without the ones which the "ignores"
      * parameter excludes.
      *
+     * @param exclusions The parsed entries of the "ignores" parameter.
      * @return The artifacts.
      * @throws IOException If the pom.xml file is not found or corrupted.
      * @throws XmlPullParserException If the pom.xml parsing was not
      *  successful.
      */
-    private Collection<MvnArtifactVersion> artifacts()
-        throws IOException, XmlPullParserException {
+    private Collection<MvnArtifactVersion> artifacts(
+        final List<Ignore> exclusions
+    ) throws IOException, XmlPullParserException {
         final Collection<MvnArtifactVersion> result = new LinkedHashSet<>();
         final MdaPom config = new MdaPom(this.pom);
         final MvnArtifactVersion parent = config.parent();
@@ -323,7 +325,7 @@ public final class MdaMojo extends AbstractMojo {
         }
         result.addAll(config.dependencies());
         result.addAll(config.plugins());
-        return this.checked(result);
+        return this.checked(result, exclusions);
     }
 
     /**
@@ -340,14 +342,16 @@ public final class MdaMojo extends AbstractMojo {
      * an artifact is not reported was to rerun the build with "-X".
      *
      * @param artifacts All the artifacts of the pom.xml file.
+     * @param exclusions The parsed entries of the "ignores" parameter.
      * @return The artifacts which have to be analysed.
      */
     private Collection<MvnArtifactVersion> checked(
-        final Collection<MvnArtifactVersion> artifacts
+        final Collection<MvnArtifactVersion> artifacts,
+        final List<Ignore> exclusions
     ) {
         final Collection<MvnArtifactVersion> result = new LinkedHashSet<>();
         for (final MvnArtifactVersion artifact : artifacts) {
-            final Optional<String> rule = this.ignore(artifact);
+            final Optional<Ignore> rule = ignore(exclusions, artifact);
             if (rule.isPresent()) {
                 this.logger.info(
                     "{}: ignored, it matches the mda.ignores entry \"{}\".",
@@ -362,36 +366,18 @@ public final class MdaMojo extends AbstractMojo {
     }
 
     /**
-     * The first entry of the "ignores" parameter which matches the artifact.
-     * The entries have been validated by now, so every one of them is two
-     * segments separated by one colon.
+     * The first entry of the "ignores" parameter which covers the artifact.
      *
+     * @param exclusions The parsed entries of the "ignores" parameter.
      * @param artifact The artifact.
      * @return The entry, or empty if the artifact has to be analysed.
      */
-    private Optional<String> ignore(final MvnArtifactVersion artifact) {
-        return this.ignores.stream()
-            .filter(
-                entry -> {
-                    final String[] parts = entry.split(":");
-                    return matches(
-                        parts[0], artifact.artifact().group().name()
-                    ) && matches(parts[1], artifact.artifact().name());
-                }
-            )
+    private static Optional<Ignore> ignore(
+        final List<Ignore> exclusions, final MvnArtifactVersion artifact
+    ) {
+        return exclusions.stream()
+            .filter(exclusion -> exclusion.covers(artifact))
             .findFirst();
-    }
-
-    /**
-     * Check whether one segment of an "ignores" entry covers the name: it
-     * does when it is the "*" wildcard or the name itself.
-     *
-     * @param pattern The segment of the entry, a literal or "*".
-     * @param name The groupId or the artifactId of an artifact.
-     * @return TRUE if the segment covers the name.
-     */
-    private static boolean matches(final String pattern, final String name) {
-        return "*".equals(pattern) || pattern.equals(name);
     }
 
     /**
@@ -666,5 +652,92 @@ public final class MdaMojo extends AbstractMojo {
                 )
             )
             .orElseThrow();
+    }
+
+    /**
+     * One entry of the {@link MdaMojo#ignores} parameter, kept as the two
+     * segments it is matched by. An entry is read apart exactly once, when
+     * the parameter is validated, instead of being split again for every
+     * artifact of the pom.xml file.
+     *
+     * @param group The groupId segment, a literal or the "*" wildcard.
+     * @param artifact The artifactId segment, a literal or the "*" wildcard.
+     * @since 6.0
+     */
+    private record Ignore(String group, String artifact) {
+
+        /**
+         * The shape which every entry of {@link MdaMojo#ignores} must have: a
+         * groupId and an artifactId separated by one colon, each of them
+         * either a literal or the sole "*".
+         */
+        private static final Pattern COORDINATE =
+            Pattern.compile("(\\*|[^\\s:*]+):(\\*|[^\\s:*]+)");
+
+        /**
+         * Parse one entry of the parameter, as the build's author wrote it.
+         *
+         * @param entry The entry.
+         * @return The parsed entry.
+         * @throws MojoFailureException If the entry is not a
+         *  "groupId:artifactId" coordinate. That is a misconfiguration of the
+         *  plugin rather than a finding of the analysis, so it fails the
+         *  build whatever the failure level is.
+         */
+        static Ignore parsed(final String entry) throws MojoFailureException {
+            if (entry == null || !COORDINATE.matcher(entry).matches()) {
+                throw new MojoFailureException(
+                    String.format(
+                        "mda.ignores entries must be \"groupId:artifactId\""
+                            + " coordinates, with \"*\" accepted as either"
+                            + " part, but an entry is: %s.",
+                        entry
+                    )
+                );
+            }
+            final String[] parts = entry.split(":");
+            return new Ignore(parts[0], parts[1]);
+        }
+
+        /**
+         * Check whether the entry excludes the artifact from the analysis: it
+         * does when both of its segments cover the artifact's coordinates.
+         *
+         * @param version The artifact's version.
+         * @return TRUE if the artifact must not be analysed.
+         */
+        boolean covers(final MvnArtifactVersion version) {
+            return matches(this.group, version.artifact().group().name())
+                && matches(this.artifact, version.artifact().name());
+        }
+
+        /**
+         * The entry the way the build's author wrote it, so that the log line
+         * about an excluded artifact names the configuration which excluded
+         * it. It is the original text and not a rendering of it: an entry is
+         * only accepted when it matches {@link Ignore#COORDINATE}, which
+         * allows neither whitespace nor a second colon, so joining the two
+         * segments back can not lose anything.
+         *
+         * @return The entry.
+         */
+        @Override
+        public String toString() {
+            return String.format("%s:%s", this.group, this.artifact);
+        }
+
+        /**
+         * Check whether one segment of the entry covers the name: it does
+         * when it is the "*" wildcard or the name itself.
+         *
+         * @param pattern The segment of the entry, a literal or "*".
+         * @param name The groupId or the artifactId of an artifact.
+         * @return TRUE if the segment covers the name.
+         */
+        private static boolean matches(
+            final String pattern, final String name
+        ) {
+            return "*".equals(pattern) || pattern.equals(name);
+        }
     }
 }
