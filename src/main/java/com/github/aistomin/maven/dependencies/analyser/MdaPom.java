@@ -31,7 +31,6 @@ import java.util.Objects;
 import java.util.Properties;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 import org.apache.maven.model.Build;
 import org.apache.maven.model.BuildBase;
 import org.apache.maven.model.Dependency;
@@ -149,7 +148,7 @@ public final class MdaPom implements MdaBuildFile {
             )
             .filter(Objects::nonNull)
             .distinct()
-            .collect(Collectors.toList());
+            .toList();
     }
 
     @Override
@@ -184,7 +183,7 @@ public final class MdaPom implements MdaBuildFile {
         return found.stream()
             .filter(Objects::nonNull)
             .distinct()
-            .collect(Collectors.toList());
+            .toList();
     }
 
     /**
@@ -303,7 +302,7 @@ public final class MdaPom implements MdaBuildFile {
     private static List<ReportPlugin> reported(final Reporting reporting) {
         final List<ReportPlugin> result;
         if (reporting == null) {
-            result = new ArrayList<>(0);
+            result = List.of();
         } else {
             result = reporting.getPlugins();
         }
@@ -320,7 +319,7 @@ public final class MdaPom implements MdaBuildFile {
         final List<Extension> result;
         final Build build = model.getBuild();
         if (build == null) {
-            result = new ArrayList<>(0);
+            result = List.of();
         } else {
             result = build.getExtensions();
         }
@@ -338,7 +337,7 @@ public final class MdaPom implements MdaBuildFile {
     ) {
         final List<Dependency> result;
         if (management == null) {
-            result = new ArrayList<>(0);
+            result = List.of();
         } else {
             result = management.getDependencies();
         }
