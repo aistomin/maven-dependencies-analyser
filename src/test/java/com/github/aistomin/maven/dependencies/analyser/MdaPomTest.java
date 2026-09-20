@@ -20,7 +20,6 @@ import com.github.aistomin.maven.browser.MavenArtifactVersion;
 import com.github.aistomin.maven.browser.MavenGroup;
 import com.github.aistomin.maven.browser.MvnArtifactVersion;
 import com.github.aistomin.maven.browser.MvnPackagingType;
-import java.util.Arrays;
 import java.util.List;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -70,7 +69,7 @@ final class MdaPomTest {
     void testDependencies() throws Exception {
         final String jupiter = "org.junit.jupiter";
         final String junit = "5.3.1";
-        final List<MvnArtifactVersion> expected = Arrays.asList(
+        final List<MvnArtifactVersion> expected = List.of(
             new MavenArtifactVersion(
                 new MavenArtifact(
                     new MavenGroup("com.github.aistomin"), "maven-browser"
@@ -123,7 +122,7 @@ final class MdaPomTest {
      */
     @Test
     void testPlugins() throws Exception {
-        final List<MvnArtifactVersion> expected = Arrays.asList(
+        final List<MvnArtifactVersion> expected = List.of(
             new MavenArtifactVersion(
                 new MavenArtifact(
                     new MavenGroup("org.apache.maven.plugins"),
@@ -160,7 +159,7 @@ final class MdaPomTest {
     @Test
     void testDependenciesFromAllSections() throws Exception {
         final String slf4j = "org.slf4j";
-        final List<MvnArtifactVersion> expected = Arrays.asList(
+        final List<MvnArtifactVersion> expected = List.of(
             artifact("com.github.aistomin", "maven-browser", "5.0"),
             artifact(slf4j, "slf4j-simple", "1.7.36"),
             artifact(slf4j, "slf4j-api", "2.0.9"),
@@ -187,7 +186,7 @@ final class MdaPomTest {
     @Test
     void testPluginsFromAllSections() throws Exception {
         final String plugins = "org.apache.maven.plugins";
-        final List<MvnArtifactVersion> expected = Arrays.asList(
+        final List<MvnArtifactVersion> expected = List.of(
             artifact(plugins, "maven-checkstyle-plugin", "3.3.1"),
             artifact(plugins, "maven-clean-plugin", "3.3.2"),
             artifact(plugins, "maven-gpg-plugin", "3.1.0"),
@@ -221,7 +220,7 @@ final class MdaPomTest {
      */
     @Test
     void testPropertyVersionsAreResolved() throws Exception {
-        final List<MvnArtifactVersion> expected = Arrays.asList(
+        final List<MvnArtifactVersion> expected = List.of(
             artifact("com.github.aistomin", "sibling", "2.5"),
             artifact("com.github.aistomin", "uncle", "7.1"),
             artifact("org.apache.commons", "commons-lang3", "1.2.17"),

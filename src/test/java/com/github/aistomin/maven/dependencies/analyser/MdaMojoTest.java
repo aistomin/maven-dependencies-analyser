@@ -35,7 +35,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.xpath.XPathFactory;
 import org.apache.maven.plugin.MojoFailureException;
@@ -276,7 +275,7 @@ final class MdaMojoTest {
             FailureLevel.ERROR,
             new MdaResource(MdaMojoTest.ERROR_POM_XML).file()
         );
-        mojo.setIgnores(Collections.singletonList("*:*"));
+        mojo.setIgnores(List.of("*:*"));
         mojo.execute();
     }
 
@@ -600,7 +599,7 @@ final class MdaMojoTest {
         );
         final List<String> lines = Arrays.stream(report.split("\\R"))
             .filter(line -> !line.startsWith("Can not analyse "))
-            .collect(Collectors.toList());
+            .toList();
         Assertions.assertFalse(lines.isEmpty(), report);
         for (final String line : lines) {
             Assertions.assertTrue(
@@ -623,7 +622,7 @@ final class MdaMojoTest {
             ),
             MdaMojo.message(
                 MdaMojoTest.version("1.0"),
-                Arrays.asList(
+                List.of(
                     MdaMojoTest.version("2.0"),
                     MdaMojoTest.version("10.0"),
                     MdaMojoTest.version("9.5")
@@ -646,7 +645,7 @@ final class MdaMojoTest {
             ),
             MdaMojo.message(
                 MdaMojoTest.version("1.0"),
-                Collections.singletonList(MdaMojoTest.version("2.0"))
+                List.of(MdaMojoTest.version("2.0"))
             )
         );
     }
@@ -805,7 +804,7 @@ final class MdaMojoTest {
         final String marker = "Can not analyse ";
         final List<String> lines = Arrays.stream(report.split("\\R"))
             .filter(line -> line.startsWith(marker) == failures)
-            .collect(Collectors.toList());
+            .toList();
         Assertions.assertFalse(lines.isEmpty(), report);
         final List<String> sorted = new ArrayList<>(lines);
         Collections.sort(sorted);
@@ -931,7 +930,7 @@ final class MdaMojoTest {
             FailureLevel.ERROR,
             new MdaResource(pom).file()
         );
-        mojo.setIgnores(Arrays.asList(ignores));
+        mojo.setIgnores(List.of(ignores));
         return Assertions.assertThrows(
             MojoFailureException.class, mojo::execute
         ).getMessage();
@@ -962,7 +961,7 @@ final class MdaMojoTest {
             FailureLevel.WARNING,
             new MdaResource(pom).file()
         );
-        mojo.setIgnores(Arrays.asList(ignores));
+        mojo.setIgnores(List.of(ignores));
         final ByteArrayOutputStream captured = new ByteArrayOutputStream();
         final PrintStream original = System.err;
         try (

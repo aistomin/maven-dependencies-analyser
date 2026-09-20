@@ -550,12 +550,10 @@ public final class MdaMojo extends AbstractMojo {
      */
     private void throwError(final String msg, final Throwable cause)
         throws MojoFailureException {
-        if (FailureLevel.ERROR.equals(this.level)) {
-            throw new MojoFailureException(msg, cause);
-        } else if (FailureLevel.WARNING.equals(this.level)) {
-            this.logger.warn(msg, cause);
-        } else {
-            throw new IllegalStateException(
+        switch (this.level) {
+            case ERROR -> throw new MojoFailureException(msg, cause);
+            case WARNING -> this.logger.warn(msg, cause);
+            default -> throw new IllegalStateException(
                 String.format("Unknown level: %s", this.level.name())
             );
         }
@@ -574,7 +572,7 @@ public final class MdaMojo extends AbstractMojo {
     ) {
         return artifacts.stream()
             .sorted(Comparator.comparing(MvnArtifactVersion::identifier))
-            .collect(Collectors.toList());
+            .toList();
     }
 
     /**
