@@ -21,6 +21,7 @@ import com.github.aistomin.maven.browser.MavenGroup;
 import com.github.aistomin.maven.browser.MvnArtifactVersion;
 import com.github.aistomin.maven.browser.MvnPackagingType;
 import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -53,6 +54,12 @@ final class MdaPomTest {
      */
     private final MdaResource interpolation =
         new MdaResource("interpolation_pom.xml");
+
+    /**
+     * The pom file whose dependencies declare the types of all the kinds:
+     * the inherited one, the known ones and an unknown one.
+     */
+    private final MdaResource types = new MdaResource("types_pom.xml");
 
     /**
      * Ctor.
@@ -257,6 +264,35 @@ final class MdaPomTest {
                 .filter(duplicate::equals)
                 .count()
         );
+    }
+
+    /**
+     * Check that the dependency's type is mapped onto the packaging type of
+     * the artifact, and that a type which the enum does not know becomes
+     * UNKNOWN rather than NULL. Such an artifact must still be analysed:
+     * the repository is asked for the versions of a group and an artifact,
+     * the packaging type is not a part of that question.
+     *
+     * @throws Exception If something goes wrong.
+     */
+    @Test
+    void testPackagingTypesAreMapped() throws Exception {
+        final Map<String, MvnPackagingType> expected = Map.of(
+            "inherited-type", MvnPackagingType.JAR,
+            "explicit-jar", MvnPackagingType.JAR,
+            "web-app", MvnPackagingType.WAR,
+            "test-fixtures", MvnPackagingType.UNKNOWN
+        );
+        final List<MvnArtifactVersion> dependencies =
+            new MdaPom(this.types.path()).dependencies();
+        Assertions.assertEquals(expected.size(), dependencies.size());
+        for (final MvnArtifactVersion dependency : dependencies) {
+            Assertions.assertEquals(
+                expected.get(dependency.artifact().name()),
+                dependency.packaging(),
+                dependency.identifier()
+            );
+        }
     }
 
     /**

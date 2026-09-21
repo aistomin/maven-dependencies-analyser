@@ -447,14 +447,19 @@ public final class MdaPom implements MdaBuildFile {
     }
 
     /**
-     * Find the {@link MvnPackagingType} by it's string representation.
+     * Find the {@link MvnPackagingType} by it's string representation. The
+     * types which the enum does not know, "test-jar" for instance, become
+     * {@link MvnPackagingType#UNKNOWN}. The artifact is still analysed: the
+     * repository is asked for the versions of a group and an artifact, the
+     * packaging type is never a part of that question.
      *
      * @param str String representation of the packaging type.
-     * @return The corresponding enum instance.
+     * @return The corresponding enum instance or
+     *  {@link MvnPackagingType#UNKNOWN} if the string matches none of them.
      */
     private static MvnPackagingType find(final String str) {
         return Arrays.stream(MvnPackagingType.values())
             .filter(type -> type.packaging().equals(str))
-            .findFirst().orElse(null);
+            .findFirst().orElse(MvnPackagingType.UNKNOWN);
     }
 }
