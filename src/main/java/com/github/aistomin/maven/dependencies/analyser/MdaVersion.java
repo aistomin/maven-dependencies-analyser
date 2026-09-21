@@ -32,6 +32,10 @@ import org.apache.maven.artifact.versioning.ComparableVersion;
  * number ({@code 1.0-1}). A new qualifier is therefore understood as soon as
  * Maven itself understands it.
  *
+ * <p>The name is read apart once, when the instance is created: the instance
+ * holds its parsed form and its answer instead of deriving them again on
+ * every use.
+ *
  * @since 5.2
  */
 public final class MdaVersion implements Comparable<MdaVersion> {
@@ -50,12 +54,26 @@ public final class MdaVersion implements Comparable<MdaVersion> {
     private final String version;
 
     /**
+     * The version's name parsed by Maven's own ordering rules. It is what
+     * every comparison of the version is made with.
+     */
+    private final ComparableVersion parsed;
+
+    /**
+     * Is the version a prerelease? Decided in the constructor, for the same
+     * reason the name is parsed there.
+     */
+    private final boolean prerelease;
+
+    /**
      * Ctor.
      *
      * @param name The version's name, e.g. "2.1.0-alpha1".
      */
     public MdaVersion(final String name) {
         this.version = name;
+        this.parsed = new ComparableVersion(name);
+        this.prerelease = MdaVersion.isPrerelease(name, this.parsed);
     }
 
     /**
@@ -71,15 +89,7 @@ public final class MdaVersion implements Comparable<MdaVersion> {
      *  release.
      */
     public boolean prerelease() {
-        final Matcher matcher = MdaVersion.NUMERIC.matcher(this.version);
-        final boolean result;
-        if (matcher.find() && matcher.end() < this.version.length()) {
-            result = new ComparableVersion(this.version)
-                .compareTo(new ComparableVersion(matcher.group())) < 0;
-        } else {
-            result = false;
-        }
-        return result;
+        return this.prerelease;
     }
 
     /**
@@ -100,7 +110,78 @@ public final class MdaVersion implements Comparable<MdaVersion> {
      */
     @Override
     public int compareTo(final MdaVersion other) {
-        return new ComparableVersion(this.version)
-            .compareTo(new ComparableVersion(other.version));
+        return this.parsed.compareTo(other.parsed);
+    }
+
+    /**
+     * The equality of two versions is the equality of their names.
+     *
+     * <p>It is deliberately not the equality of
+     * {@link MdaVersion#compareTo(MdaVersion)}: Maven ranks {@code 1.0} and
+     * {@code 1.0.0} the same, but they are two different versions to declare
+     * in a pom.xml file, and it is the declared one which the analysis
+     * reports.
+     *
+     * @param obj The object we compare to.
+     * @return TRUE - the object is a version with the same name. FALSE - it
+     *  is not.
+     */
+    @Override
+    public boolean equals(final Object obj) {
+        final boolean result;
+        if (this == obj) {
+            result = true;
+        } else if (obj instanceof MdaVersion other) {
+            result = this.version.equals(other.version);
+        } else {
+            result = false;
+        }
+        return result;
+    }
+
+    /**
+     * The hash code of the version's name, consistent with
+     * {@link MdaVersion#equals(Object)}.
+     *
+     * @return The hash code.
+     */
+    @Override
+    public int hashCode() {
+        return this.version.hashCode();
+    }
+
+    /**
+     * The version's name, the way a pom.xml file declares it.
+     *
+     * @return The version's name, e.g. "2.1.0-alpha1".
+     */
+    @Override
+    public String toString() {
+        return this.version;
+    }
+
+    /**
+     * Is a version a prerelease? The version is compared against its own
+     * numeric part, and it is a prerelease when Maven ranks it below that
+     * part.
+     *
+     * @param name The version's name, e.g. "2.1.0-alpha1".
+     * @param comparable The name parsed by Maven's own ordering rules.
+     * @return TRUE - the version is a prerelease. FALSE - the version is a
+     *  release.
+     */
+    private static boolean isPrerelease(
+        final String name, final ComparableVersion comparable
+    ) {
+        final Matcher matcher = MdaVersion.NUMERIC.matcher(name);
+        final boolean result;
+        if (matcher.find() && matcher.end() < name.length()) {
+            result = comparable.compareTo(
+                new ComparableVersion(matcher.group())
+            ) < 0;
+        } else {
+            result = false;
+        }
+        return result;
     }
 }
