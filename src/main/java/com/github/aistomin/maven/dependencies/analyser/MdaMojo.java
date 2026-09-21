@@ -422,9 +422,9 @@ public final class MdaMojo extends AbstractMojo {
                         artifact.artifact().identifier(),
                         newer.stream()
                             .map(MvnArtifactVersion::name)
-                            .sorted(
-                                Comparator.comparing(MdaVersion::new).reversed()
-                            )
+                            .map(MdaVersion::new)
+                            .sorted(Comparator.reverseOrder())
+                            .map(MdaVersion::toString)
                             .collect(Collectors.joining("; "))
                     );
                     outdated.append(message(artifact, newer));

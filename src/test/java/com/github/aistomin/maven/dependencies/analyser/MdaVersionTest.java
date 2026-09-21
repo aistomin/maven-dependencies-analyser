@@ -125,4 +125,38 @@ final class MdaVersionTest {
             0, new MdaVersion("1.0").compareTo(new MdaVersion("1.0"))
         );
     }
+
+    /**
+     * Check that the versions have value semantics: two versions with the
+     * same name are equal to each other and hash alike. The equality is the
+     * one of the name and not the one of the comparison: Maven ranks "1.0"
+     * and "1.0.0" the same, and they are still two different declared
+     * versions.
+     */
+    @Test
+    void testEquality() {
+        final MdaVersion version = new MdaVersion("1.0");
+        Assertions.assertEquals(version, version);
+        Assertions.assertEquals(version, new MdaVersion("1.0"));
+        Assertions.assertEquals(
+            version.hashCode(), new MdaVersion("1.0").hashCode()
+        );
+        Assertions.assertNotEquals(version, new MdaVersion("2.0"));
+        final MdaVersion padded = new MdaVersion("1.0.0");
+        Assertions.assertEquals(0, version.compareTo(padded));
+        Assertions.assertNotEquals(version, padded);
+        Assertions.assertNotEquals(version, null);
+        Assertions.assertNotEquals(version, "1.0");
+    }
+
+    /**
+     * Check that a version prints as the name with which it was declared, so
+     * that the debug logs and the assertion failures name the version itself
+     * instead of the object which holds it.
+     */
+    @Test
+    void testToString() {
+        final String name = "2.1.0-alpha1";
+        Assertions.assertEquals(name, new MdaVersion(name).toString());
+    }
 }
