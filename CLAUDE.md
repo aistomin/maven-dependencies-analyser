@@ -63,11 +63,12 @@ Notes on the build:
 - There is no separate lint command: Checkstyle, PMD, duplicate-finder, and JaCoCo's coverage
   check are all bound to the `verify` phase and **fail the build** on violations.
 - Checkstyle (`conf/checkstyle.xml`) is strict: mandatory Javadoc on all methods, fields, and
-  types (with `@since` tags on types), 80-character lines, `final` method parameters and
-  local variables, and naming rules. It scans both `src/main/java` and `src/test/java`
-  (`includeTestSourceDirectory` in the `maven-checkstyle-plugin` config), so tests are held
-  to exactly the same bar as production code. Match the existing files' Javadoc/comment
-  style exactly or the build breaks.
+  types, 80-character lines, `final` method parameters and local variables, and naming
+  rules. Every type additionally carries a `@since` tag; no tool enforces that, it is the
+  convention of the existing files, so keep it. Checkstyle scans both `src/main/java` and
+  `src/test/java` (`includeTestSourceDirectory` in the `maven-checkstyle-plugin` config),
+  so tests are held to exactly the same bar as production code. Match the existing files'
+  Javadoc/comment style exactly or the build breaks.
 - **`LICENSE` is the only place the license text exists.** It is the verbatim 202-line
   Apache 2.0 text from apache.org, which is what makes GitHub and license scanners detect
   the project as `apache-2.0`. Never edit it, never reformat it, never trim it to the short
@@ -106,34 +107,55 @@ Notes on the build:
   is a plain `mvn clean install` — there is nothing left for a trailing `javadoc:javadoc`
   to catch.
 - JaCoCo enforces **95% line coverage per package** (`jacoco:check`); new code needs tests.
-  The bar is set just under where coverage already sits (97.40% today) on purpose: it exists
+  The bar is set just under where coverage already sits (99.13% today) on purpose: it exists
   to stop coverage sliding, not to define an acceptable level to sink to.
 - The plugin runs itself on this repo during `verify` (dogfooding, at `WARNING` level).
 - Tests are JUnit 5 (Jupiter). Both the tests and the dogfooding step query the real Maven
   Central over the network, so the full build needs network access.
-  `src/test/resources/error_pom.xml` intentionally contains outdated dependencies;
-  `sample_pom.xml`, `parentless_pom.xml`, and `sections_pom.xml` cover the other parsing
-  cases.
+  The test classes are `MdaMojoTest`, `MdaPomTest` and `MdaVersionTest`, plus the
+  `MdaResource` helper which locates the fixture poms in `src/test/resources`:
+  `error_pom.xml` intentionally contains outdated dependencies; `sample_pom.xml`,
+  `parentless_pom.xml`, `sections_pom.xml`, `interpolation_pom.xml`, `types_pom.xml`,
+  `unknown_pom.xml`, `corrupt_pom.xml` and `prerelease_pom.xml` cover the other parsing
+  and reporting cases.
 
 ## Architecture
 
 All production code is one package, `com.github.aistomin.maven.dependencies.analyser`,
-four files:
+five classes plus `package-info.java`:
 
 - **`MdaMojo`** — the plugin entry point (`@Mojo(name = "check", defaultPhase = VERIFY)`).
   Parameters: `level` (`ERROR` fails the build, `WARNING` only logs — see `FailureLevel`),
-  `enabled`, `skip` (wins over both, meant for the command line), and `pom` (path to the
-  pom file, used by tests to point at fixture poms); all of them are settable as
-  `-Dmda.<parameter>`. It
-  collects parent + dependencies + plugins, asks the repo for newer versions of each, and
-  routes every failure through `throwError()`, which either throws `MojoFailureException` or
-  logs, depending on `level`.
+  `enabled`, `skip` (wins over both, meant for the command line), `pom` (path to the pom
+  file, defaults to `${project.file}`, used by tests to point at fixture poms), `threads`
+  (bound on the parallel Maven Central lookups, default 8, must be positive), `prereleases`
+  (report alphas, betas, milestones, release candidates and snapshots as upgrades, default
+  false) and `ignores` (`groupId:artifactId` coordinates excluded from the analysis, `*`
+  accepted as either whole part). All of them are settable as `-Dmda.<parameter>`, but a
+  value fixed in the pom's `<configuration>` wins over the command line, as for every Maven
+  plugin. A malformed `threads` or `ignores` value is a misconfiguration and fails the
+  build regardless of `level`. It collects parent + dependencies + plugins, drops the
+  ignored ones (logged at `info`), looks the rest up in parallel on a fixed pool of virtual
+  threads, filters the prereleases out of the findings unless asked for them or the
+  declared version is itself a prerelease, and routes every failure through
+  `throwError()`, which either throws `MojoFailureException` or logs, depending on `level`.
 - **`MdaBuildFile`** — interface abstracting a build file (`parent()`, `dependencies()`,
   `plugins()`).
-- **`MdaPom`** — the pom.xml implementation, parses with `MavenXpp3Reader` and resolves
-  `${property}` version references against the pom's `<properties>`. Entries without a
-  resolvable version are filtered out: a missing version is logged at `debug` (it is
-  inherited from the parent), an unresolvable `${property}` at `warn`.
+- **`MdaPom`** — the pom.xml implementation, parses with `MavenXpp3Reader`. It collects
+  `<parent>`, `<dependencies>` and `<dependencyManagement>`, `<build><plugins>` and
+  `<build><pluginManagement>` including each plugin's `<dependencies>`,
+  `<build><extensions>` and `<reporting><plugins>`, all of them from every `<profile>` as
+  well (except `<extensions>`, which Maven allows only in the top-level `<build>`).
+  `${property}` version references are resolved against the pom's `<properties>`, the
+  properties of its profiles and the built-in `project.version` and
+  `project.parent.version`. Entries without a resolvable version are filtered out: a
+  missing version is logged at `debug` (it is inherited from the parent), an unresolvable
+  `${property}` at `warn`.
+- **`MdaVersion`** — a version name parsed once with Maven's `ComparableVersion`, with
+  value semantics. It decides the ordering of versions (which one is the latest) and
+  whether a version is a prerelease: it is when Maven ranks it below the same version
+  without its qualifier.
+- **`FailureLevel`** — the `ERROR`/`WARNING` enum behind the `level` parameter.
 - Version lookup against Maven Central is delegated to the author's separate library
   `com.github.aistomin:maven-browser` (`MavenCentral`, `MvnArtifactVersion`, etc.) — changes
   to the actual "what's newer" logic usually belong there, not here.
@@ -153,17 +175,18 @@ signing, central-publishing-maven-plugin — the javadoc jar comes from the base
 the profile does not declare `maven-javadoc-plugin`); pushes the release commit and a
 follow-up next-`SNAPSHOT` commit to `master`; creates the `v<version>` GitHub release with
 generated notes; and closes the release ticket and the milestone. No version branch is
-created (the old `4.0`-style branches are legacy). Don't bump the version in the pom by
+created. Don't bump the version in the pom by
 hand and don't run the release profile locally.
 
 The self-referencing `com.github.aistomin:maven-dependencies-analyser` plugin in
 `pom.xml` (the dogfooding step) is deliberately **not** bumped by the release: the version
 being released does not exist in Maven Central while the release build runs. Nothing else
 bumps it either: Dependabot never even considers it, because its coordinates are the pom's
-own `groupId:artifactId` — of the 25 artifacts declared in `pom.xml` its job log shows a
-"Checking if …" line for 24, and none for the self-reference. No `dependabot.yml` rule can
-change that, so don't spend time on an `allow` entry. The pin simply drifts behind the
-latest release and is bumped ad hoc, in its own ticket, when someone notices.
+own `groupId:artifactId` — its job log shows a "Checking if …" line for every other
+artifact declared in `pom.xml` and none for the self-reference. No `dependabot.yml` rule
+can change that, so don't spend time on an `allow` entry. The pin simply drifts behind the
+latest release and is bumped by hand, in whatever ticket notices it, to the latest version
+on Maven Central.
 
 The workflow is not atomic — the deploy to Maven Central is irreversible and happens
 before the pushes. If a run dies after the deploy step, finish the release by hand (push
@@ -199,6 +222,17 @@ local branches whose remote is gone. Run the full Maven build and only commit wh
 ## Working agreements
 
 These are binding rules for how work happens in this repository, not suggestions.
+
+### Keeping this file up to date
+
+This file must never be out of date. Whenever a ticket changes something this file
+describes — a class, a parameter, a build gate, a fixture, a workflow, a convention — the
+matching sentence here changes in the same ticket and in the same commit. The same holds
+for drift you merely *notice* while working on an unrelated ticket: fix it right there,
+in the ticket's commit. Never leave it for "a separate ticket", never mention it as a
+follow-up, and never commit anything while this file is known to be stale. The
+pre-commit review in step 6 of "Solving a ticket" includes checking this file's claims
+against the tree the ticket touched.
 
 ### Creating a GitHub issue
 
@@ -326,8 +360,10 @@ to push.
    changes are in — the user may reject the implementation instead, which sends you back to
    step 5. Apply rule number one first: `git status --short`, `git diff HEAD`, read any
    untracked files, and check the result for both correctness and anything that must not
-   reach a public repository. Never suggest a message describing changes you have not just
-   re-read. Never commit before an explicit go. Format:
+   reach a public repository. Then check that `CLAUDE.md` still describes the tree as it is
+   after the change, and fix it in the same commit if it does not (see "Keeping this file
+   up to date"). Never suggest a message describing changes you have not just re-read.
+   Never commit before an explicit go. Format:
 
    ```
    type(#<number>): imperative, lower-case summary, no trailing period
