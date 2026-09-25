@@ -49,13 +49,13 @@ Add the following configuration to your project's `pom.xml`:
 </build>
 ```
 
-With this configuration, the Maven build will fail if any of the 
+With this configuration, the Maven build will fail if any of the
 dependencies of your project are out of date. If you do not want the build to
-fail, but rather just show a warning, please change the `level` 
+fail, but rather just show a warning, please change the `level`
 configuration value from `ERROR` to `WARNING`. If `level` is not configured
 at all, it defaults to `WARNING`.
 
-With the `enabled` configuration, you can easily turn the dependencies 
+With the `enabled` configuration, you can easily turn the dependencies
 validation off. The configuration section would then look like this:
 
 ```xml
@@ -196,7 +196,12 @@ The same flag can be set in the plugin's configuration:
 analysed and the build never fails because of an outdated dependency.
 
 All the plugin's parameters can be set from the command line as
-`mda.<parameter>`, e.g. `-Dmda.level=ERROR` or `-Dmda.enabled=false`.
+`mda.<parameter>`, e.g. `-Dmda.level=ERROR` or `-Dmda.enabled=false`. Keep in
+mind that a value fixed in the plugin's `<configuration>` wins over the command
+line, as it does for every Maven plugin: with `<level>ERROR</level>` in the
+`pom.xml`, `-Dmda.level=WARNING` changes nothing. A parameter which has to
+vary from build to build therefore belongs on the command line only, and that
+is why `skip` exists next to `enabled`.
 
 ### What Is Analysed
 
@@ -228,6 +233,10 @@ profiles, and the built-in `project.version` and `project.parent.version` —
 the artifact is skipped as well and a warning is logged, so that you can see
 that the analysis was not complete.
 
+Please keep in mind that the versions are looked up in the
+[Maven Central Repository](https://central.sonatype.com/) only: an artifact
+which is published somewhere else can not be analysed.
+
 ### Run the Plugin Manually
 
 If you want to run the plugin explicitly (instead of binding it to a phase),
@@ -237,31 +246,37 @@ execute the following command in your project:
 mvn maven-dependencies-analyser:check
 ```
 
-Please keep in mind that currently we validate only dependencies that are 
-published in the [Maven Central Repository](https://search.maven.org/).
-
 ## Licence
 
-The project is licensed under the terms of the 
+The project is licensed under the terms of the
 [Apache License, Version 2.0](http://www.apache.org/licenses/LICENSE-2.0.html).
 
 ## Have You Found a Bug? Do You Have Any Suggestions?
 
 Although we try our best, we're not robots and bugs are possible :) Also we're
 always happy to hear suggestions, ideas, and thoughts from you. Don't
-hesitate to [create an issue](https://github.com/aistomin/maven-dependencies-analyser/issues/new). 
+hesitate to [create an issue](https://github.com/aistomin/maven-dependencies-analyser/issues/new).
 It will help us make our project better. Thank you in advance!
 
 ## How to Contribute?
 
-Do you want to help us with the project? We will be more than just happy. 
+Do you want to help us with the project? We will be more than just happy.
 Please: fork the repository, make changes, submit a pull request. We promise
 to review your changes in the next couple of days and merge them to the master
-branch, if they look correct. To avoid frustration, before sending us your pull
-request please run the following command and make sure there are no errors:
+branch, if they look correct.
 
-```
-$ mvn clean install
+Every change starts with an issue, so if there is none for yours yet, please
+[create one](https://github.com/aistomin/maven-dependencies-analyser/issues/new)
+first. Work on a branch named `Issue-<number>` and write the commit messages
+and the pull request title in the
+[Conventional Commits](https://www.conventionalcommits.org/) format with the
+issue number as the scope, e.g. `fix(#123): resolve the profile properties`.
+
+To avoid frustration, before sending us your pull request please run the
+following command and make sure there are no errors:
+
+```bash
+mvn clean install
 ```
 
 Keep in mind our [system requirements](#system-requirements).
